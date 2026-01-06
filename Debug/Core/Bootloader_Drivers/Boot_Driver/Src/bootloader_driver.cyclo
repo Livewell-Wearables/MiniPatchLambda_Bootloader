@@ -1,0 +1,6 @@
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:66:6:Bootloader_Init	2
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:103:6:Bootloader_Task	10
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:191:6:Bootloader_JumpToApplication	3
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:219:13:BL_IsVectorTableSane	6
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:252:13:BL_Jump	2
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:309:13:BL_CheckUpdateRequest	7

@@ -22,6 +22,8 @@ C_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
+Core/Bootloader_Drivers/AT24C32_Driver/Src \
+Core/Bootloader_Drivers/Boot_Driver/Src \
 Core/ST_Drivers/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src \
 Core/ST_Drivers/Middlewares/ST/STM32_USB_Device_Library/Core/Src \
 Core/ST_Drivers/USB_DEVICE/App \

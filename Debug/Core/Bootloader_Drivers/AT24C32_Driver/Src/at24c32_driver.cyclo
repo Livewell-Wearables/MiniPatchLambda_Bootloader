@@ -1,0 +1,9 @@
+../Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.c:10:19:AT24C32_Initialization	1
+../Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.c:33:19:AT24C32_WriteData	7
+../Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.c:99:19:AT24C32_WriteU32	2
+../Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.c:155:19:AT24C32_WriteMultipleData	8
+../Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.c:225:19:AT24C32_ReadData	7
+../Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.c:274:19:AT24C32_ReadU32	4
+../Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.c:336:19:AT24C32_ReadMultipleData	4
+../Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.c:379:19:AT24C32_EraseAll	5
+../Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.c:424:19:AT24C32_IsDeviceReady	1

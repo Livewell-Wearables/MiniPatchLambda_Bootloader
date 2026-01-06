@@ -16,6 +16,8 @@ RM := rm -rf
 -include Core/ST_Drivers/USB_DEVICE/App/subdir.mk
 -include Core/ST_Drivers/Middlewares/ST/STM32_USB_Device_Library/Core/Src/subdir.mk
 -include Core/ST_Drivers/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/subdir.mk
+-include Core/Bootloader_Drivers/Boot_Driver/Src/subdir.mk
+-include Core/Bootloader_Drivers/AT24C32_Driver/Src/subdir.mk
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)

@@ -21,7 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "at24c32_driver.h"
+#include "bootloader_driver.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,7 +49,9 @@ TIM_HandleTypeDef htim3;
 PCD_HandleTypeDef hpcd_USB_OTG_HS;
 
 /* USER CODE BEGIN PV */
+S_AT24C32_t at24c32;
 
+BootloaderCtx_t bootloaderCTX;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -97,9 +100,11 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_TIM3_Init();
-  MX_USB_OTG_HS_PCD_Init();
+  //MX_USB_OTG_HS_PCD_Init();
   /* USER CODE BEGIN 2 */
+  AT24C32_Initialization(&at24c32, &hi2c1);
 
+  Bootloader_Init(&bootloaderCTX);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -109,6 +114,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  Bootloader_Task(&bootloaderCTX);
   }
   /* USER CODE END 3 */
 }
@@ -332,6 +338,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, EEPROM_A2_Pin|MCU_EEPROM_WP_Pin|SYSTEM_SHUTDOWN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, IMU_CS_Pin|IMU_VCC_ENABLE_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(MCU_EEPROM_VCC_ENABLE_GPIO_Port, MCU_EEPROM_VCC_ENABLE_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : EEPROM_A2_Pin MCU_EEPROM_WP_Pin SYSTEM_SHUTDOWN_Pin */
@@ -352,6 +361,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(MCU_PUSH_BUTTON_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : IMU_CS_Pin IMU_VCC_ENABLE_Pin */
+  GPIO_InitStruct.Pin = IMU_CS_Pin|IMU_VCC_ENABLE_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : MCU_EEPROM_VCC_ENABLE_Pin */
   GPIO_InitStruct.Pin = MCU_EEPROM_VCC_ENABLE_Pin;

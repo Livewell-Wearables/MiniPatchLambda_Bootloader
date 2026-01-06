@@ -29,7 +29,12 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pcd.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pcd_ex.h \
- ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h \
+ C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_driver.h \
+ C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_address.h \
+ C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/Boot_Driver/Inc/bootloader_driver.h \
+ C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/Boot_Driver/Inc/bootloader_eeprom.h \
+ C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/Boot_Driver/Inc/bootloader_sram.h
 ../Core/Inc/main.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal.h:
 ../Core/Inc/stm32u5xx_hal_conf.h:
@@ -62,3 +67,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pcd_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h:
+C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_driver.h:
+C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_address.h:
+C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/Boot_Driver/Inc/bootloader_driver.h:
+C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/Boot_Driver/Inc/bootloader_eeprom.h:
+C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/Boot_Driver/Inc/bootloader_sram.h:
