@@ -55,13 +55,8 @@ typedef struct
 bool BL_EEPROM_Read(S_AT24C32_t *at24c32, bl_eeprom_meta_t *meta);
 
 /**
- * @brief EEPROM'a boot metadata yazar
- */
-bool BL_EEPROM_Write(S_AT24C32_t *at24c32, const bl_eeprom_meta_t *meta);
-
-/**
  * @brief EEPROM update flag'ini temizler
  */
-bool BL_EEPROM_ClearUpdateFlag(S_AT24C32_t *at24c32);
+HAL_StatusTypeDef BL_EEPROM_ClearUpdateFlag(S_AT24C32_t *at24c32);
 
 #endif /* BOOTLOADER_DRIVERS_BOOT_DRIVER_INC_BOOTLOADER_EEPROM_H_ */

@@ -13,6 +13,9 @@
 #include <stdbool.h>
 #include "bootloader_eeprom.h"
 #include "bootloader_sram.h"
+#include "USB_Transmit.h"
+
+extern RTC_HandleTypeDef hrtc;
 
 /* =========================================================
  * Flash / Memory Configuration
@@ -43,6 +46,20 @@ typedef enum
     BL_STATE_ERROR
 } bl_state_t;
 
+typedef enum
+{
+	BL_UPDATE_IDLE	= 0,			// Henüz sistem boot modda değil, hazırlıklar sürüyor.
+	BL_UPDATE_READY,				// USB üzerinden PC ye bootlaoder moda geçtiğimizi ifade eden mesaj (1 sn de 1 gönder)
+	BL_UPDATE_REQUEST_UPDATE_INFO,	// PC'den güncelleme paketinin bilgileri istenir.
+	BL_UPDATE_CHECK_INFO,			// Gelen bilgi kontol edilir ve uygun ise uygun mesajı gönderilip paket talep edilecek
+	BL_UPDATE_REQUEST_PACKET,		// USB üzerinden PC ye sıradaki paketi göndermesi söylenir
+	BL_UPDATE_RECEIVE_DATA,			// PC den gönderilen paket alınır ve ayrıştırılır
+	BL_UPDATE_VERIFY,				// PC den gelen paket doğrulanır
+	BL_UPDATE_WRITE_FLASH,			// PC den gelen ayrıştırılmış ve doğrulanmış paket Flash'a yazılır
+	BL_UPDATE_ERROR,				// Herhangi bir hata durumunda PC ye bilgi verilip sistem kapatılacak
+	BL_UPDATE_FINISH				// Güncelleme tamamalanacak ve application a geçilecek
+}bl_update_state_t;
+
 /* =========================================================
  * Bootloader Error Codes
  * ========================================================= */
@@ -62,30 +79,30 @@ typedef enum
 typedef struct
 {
     /* --- Core state --- */
-    bl_state_t   state;
-    bl_error_t   error;
+    bl_state_t   		state;
+    bl_update_state_t	updateState;
+    bl_error_t   		error;
 
-    uint32_t     tick_start;
-    uint32_t     boot_elapsed_ms;
+    uint32_t     		tick_start;
+    uint32_t     		boot_elapsed_ms;
 
     /* --- Update flags --- */
-    bool         update_requested;
-    bool         update_in_progress;
+    bool         		update_requested;
+    bool         		update_in_progress;
 
     /* --- Application info --- */
-    uint32_t     app_base;
-    bool         app_valid;
+    uint32_t     		app_base;
+    bool         		app_valid;
 
     /* --- Firmware transfer (ileride) --- */
-    uint32_t     fw_size;
-    uint32_t     fw_received;
-    uint32_t     fw_crc_expected;
-    uint32_t     fw_crc_calculated;
+    uint32_t     		fw_size;
+    uint32_t     		fw_received;
+    uint32_t     		fw_crc_expected;
+    uint32_t     		fw_crc_calculated;
 
     /* --- Debug / diagnostics --- */
-    uint32_t     last_event;
-    uint32_t     reset_reason;
-
+    uint32_t     		last_event;
+    uint32_t     		reset_reason;
 } BootloaderCtx_t;
 
 /* =========================================================

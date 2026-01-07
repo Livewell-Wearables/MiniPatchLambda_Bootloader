@@ -12,7 +12,6 @@
  */
 
 #include "bootloader_driver.h"
-#include "stm32u5xx_hal.h"
 
 extern S_AT24C32_t at24c32;
 
@@ -107,6 +106,7 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         return;
     }
 
+    static uint32_t updateInfoTime = 0;
     ctx->boot_elapsed_ms = HAL_GetTick() - ctx->tick_start;
 
     switch (ctx->state)
@@ -117,7 +117,8 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
             if (ctx->update_requested == true)
             {
-                ctx->state = BL_STATE_UPDATE_MODE;
+                ctx->state 			= BL_STATE_UPDATE_MODE;
+                ctx->updateState	= BL_UPDATE_IDLE;
             }
             else
             {
@@ -138,8 +139,9 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
                 }
                 else
                 {
-                    ctx->error = BL_ERR_INVALID_VECTOR;
-                    ctx->state = BL_STATE_UPDATE_MODE;
+                    ctx->error 			= BL_ERR_INVALID_VECTOR;
+                    ctx->state 			= BL_STATE_UPDATE_MODE;
+                    ctx->updateState	= BL_UPDATE_IDLE;
                 }
             }
             break;
@@ -148,6 +150,86 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         case BL_STATE_UPDATE_MODE:
         {
             /* CDC update logic will be implemented here */
+
+        	/*
+        	 * 1- Masaüstü tarafına boot moda girdiğimizi söylememiz lazım (USB Tarafından boot moda girdiğine dair mesaj gönder)
+        	 *
+        	 * 2- Bilgi bekliyoruz.
+        	 *
+        	 * 3- Masaüstü tarafından paket uzunluğu bekleniyor. (Paket uzunluğunu gönderecek)
+        	 *
+        	 * (1 - 3 : Ben update sekansına girdim senden yüklenecek dosyanın bilgilerini bekliyorum)
+        	 *
+        	 *
+        	 */
+
+        	switch(ctx->updateState)
+        	{
+        	case BL_UPDATE_IDLE:
+        		/*
+        		 * Bazı kontroller yapılır ve BL_UPDATE_READY ye yönlendirilir.
+        		 */
+
+                ctx->updateState	= BL_UPDATE_READY;
+
+        		updateInfoTime = HAL_GetTick();
+
+        		break;
+
+        	case BL_UPDATE_READY:
+
+        		/*
+        		 * Her 1 saniye de 1 masaüstü uygulamasına mesaj gönderilir.
+        		 */
+        		if(ctx->boot_elapsed_ms - updateInfoTime >= 1000)
+        		{
+            		updateInfoTime = HAL_GetTick();
+            		/*
+            		 * MCU - > PC : Send BL Update Ready Info
+            		 */
+            		USBTxParameters_t *USB_tx_param = USB_Prepare_Transmit_Buffer(USB_PACKET_FIRMWARE_UPDATE, USB_FIRMWARE_UPDATE_READY, 0, 0, NULL);
+            		USB_Transmit(USB_tx_param->usbTxBuf, USB_tx_param->usbTxBufLen);
+        		}
+
+        		break;
+
+        	case BL_UPDATE_REQUEST_UPDATE_INFO:
+
+        		break;
+
+        	case BL_UPDATE_CHECK_INFO:
+
+        		break;
+
+        	case BL_UPDATE_REQUEST_PACKET:
+
+        		break;
+
+        	case BL_UPDATE_RECEIVE_DATA:
+
+        		break;
+
+        	case BL_UPDATE_VERIFY:
+
+        		break;
+
+        	case BL_UPDATE_WRITE_FLASH:
+
+        		break;
+
+        	case BL_UPDATE_ERROR:
+
+        		break;
+
+        	case BL_UPDATE_FINISH:
+
+        		break;
+
+        	default:
+
+        		break;
+        	}
+
             break;
         }
 
@@ -309,76 +391,55 @@ static void BL_Jump(uint32_t appBase)
 static bool BL_CheckUpdateRequest(BootloaderCtx_t *ctx)
 {
     bl_eeprom_meta_t ee_meta;
-    bl_backup_ctx_t  bk_ctx;
+    bool             update_from_eeprom = false;
+    bool             update_from_backup = false;
 
     if (ctx == NULL)
     {
         return false;
     }
 
-    /* ---------------------------------------------------------
-     * Step 1: Read persistent update request from EEPROM
-     * --------------------------------------------------------- */
-    if (BL_EEPROM_Read(&at24c32, &ee_meta) != true)
+    /* =========================================================
+     * Step 1: Check RTC Backup Register (reset-based trigger)
+     * ========================================================= */
+    if (BL_RTCBackup_IsUpdateRequested(&hrtc) == true)
     {
-        /* EEPROM okunamıyorsa update isteği yok varsayılır */
-        return false;
+        /* Tek seferlik davranış */
+        update_from_backup = true;
     }
 
-    /* EEPROM içeriği geçerli mi? */
-    if (ee_meta.magic != BL_EE_MAGIC)
+    /* =========================================================
+     * Step 2: Check persistent update request from EEPROM
+     * ========================================================= */
+    if (BL_EEPROM_Read(&at24c32, &ee_meta) == true)
     {
-        return false;
-    }
-
-    /* Application update istemiş mi? */
-    if (ee_meta.update_flag != BL_EE_FLAG_UPDATE_REQUEST)
-    {
-        return false;
-    }
-
-    /* ---------------------------------------------------------
-     * Step 2: Confirm reset context using Backup SRAM
-     * --------------------------------------------------------- */
-
-    /* Backup SRAM'deki mevcut context'i oku (varsa) */
-    if (BL_Backup_Read(&bk_ctx) != true)
-    {
-        /* İlk kez giriliyor olabilir, yeni context oluştur */
-        bk_ctx.magic      = BL_BK_MAGIC;
-        bk_ctx.state      = BL_BK_STATE_AFTER_UPDATE_RESET;
-        bk_ctx.last_error = BL_ERR_NONE;
-    }
-    else
-    {
-        /* Önceden update sürecindeysek tekrar girmeyelim */
-        if (bk_ctx.state == BL_BK_STATE_UPDATE_IN_PROGRESS)
+        if ((ee_meta.magic == BL_EE_MAGIC) &&
+            (ee_meta.update_flag == BL_EE_FLAG_UPDATE_REQUEST))
         {
-            ctx->update_in_progress = true;
-            return true;
+            update_from_eeprom = true;
         }
     }
 
-    /* ---------------------------------------------------------
-     * Step 3: Mark reset as update-related in Backup SRAM
-     * --------------------------------------------------------- */
+    /* =========================================================
+     * Step 3: Final decision (OR logic)
+     * ========================================================= */
+    if ((update_from_backup == false) &&
+        (update_from_eeprom == false))
+    {
+        /* Ne EEPROM ne de Backup update istiyor */
+        return false;
+    }
 
-    bk_ctx.magic      = BL_BK_MAGIC;
-    bk_ctx.state      = BL_BK_STATE_AFTER_UPDATE_RESET;
-    bk_ctx.last_error = BL_ERR_NONE;
-
-    (void)BL_Backup_Write(&bk_ctx);
-
-    /* ---------------------------------------------------------
-     * Step 4: Update bootloader context for debug/trace
-     * --------------------------------------------------------- */
+    /* =========================================================
+     * Step 4: Update bootloader context
+     * ========================================================= */
+    BL_RTCBackup_ClearUpdateRequest(&hrtc);
+    BL_EEPROM_ClearUpdateFlag(&at24c32);
 
     ctx->update_requested   = true;
     ctx->update_in_progress = false;
     ctx->last_event         = BL_STATE_UPDATE_MODE;
 
-    /* ---------------------------------------------------------
-     * Step 5: Enter update mode
-     * --------------------------------------------------------- */
     return true;
 }
+

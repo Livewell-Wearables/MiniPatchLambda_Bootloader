@@ -7,55 +7,49 @@
 #include "bootloader_sram.h"
 
 /**
- * @brief Backup SRAM'den context okur
+ * @brief Check update request flag stored in RTC backup register
  */
-bool BL_Backup_Read(bl_backup_ctx_t *ctx)
+bool BL_RTCBackup_IsUpdateRequested(RTC_HandleTypeDef *hrtc)
 {
-    if (ctx == NULL)
+    uint32_t value;
+
+    if (hrtc == NULL)
     {
         return false;
     }
 
-    const bl_backup_ctx_t *bk =
-        (const bl_backup_ctx_t *)BL_BK_BASE_ADDR;
+    value = HAL_RTCEx_BKUPRead(hrtc, RTC_BKP_DR10);
 
-    if (bk->magic != BL_BK_MAGIC)
+    if (value == BL_UPDATE_MAGIC)
     {
-        return false;
+        return true;
     }
 
-    *ctx = *bk;
-    return true;
+    return false;
 }
 
 /**
- * @brief Backup SRAM'e context yazar
+ * @brief Set update request flag into RTC backup register
  */
-bool BL_Backup_Write(const bl_backup_ctx_t *ctx)
+void BL_RTCBackup_SetUpdateRequest(RTC_HandleTypeDef *hrtc)
 {
-    if (ctx == NULL)
+    if (hrtc == NULL)
     {
-        return false;
+        return;
     }
 
-    bl_backup_ctx_t *bk =
-        (bl_backup_ctx_t *)BL_BK_BASE_ADDR;
-
-    *bk = *ctx;
-    return true;
+    HAL_RTCEx_BKUPWrite(hrtc, RTC_BKP_DR10, BL_UPDATE_MAGIC);
 }
 
 /**
- * @brief Backup SRAM içeriğini sıfırlar
+ * @brief Clear update request flag from RTC backup register
  */
-void BL_Backup_Clear(void)
+void BL_RTCBackup_ClearUpdateRequest(RTC_HandleTypeDef *hrtc)
 {
-    bl_backup_ctx_t *bk =
-        (bl_backup_ctx_t *)BL_BK_BASE_ADDR;
+    if (hrtc == NULL)
+    {
+        return;
+    }
 
-    bk->magic = 0U;
-    bk->state = BL_BK_STATE_NONE;
-    bk->last_error = 0U;
+    HAL_RTCEx_BKUPWrite(hrtc, RTC_BKP_DR10, 0U);
 }
-
-

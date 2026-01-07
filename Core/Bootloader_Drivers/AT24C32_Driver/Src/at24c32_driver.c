@@ -12,6 +12,7 @@ HAL_StatusTypeDef AT24C32_Initialization(S_AT24C32_t *at24c32, I2C_HandleTypeDef
 	HAL_GPIO_WritePin(IMU_VCC_ENABLE_GPIO_Port, 		IMU_VCC_ENABLE_Pin, 		GPIO_PIN_SET);
 	HAL_GPIO_WritePin(IMU_CS_GPIO_Port, 				IMU_CS_Pin, 				GPIO_PIN_SET);
 	HAL_GPIO_WritePin(MCU_EEPROM_VCC_ENABLE_GPIO_Port, 	MCU_EEPROM_VCC_ENABLE_Pin, 	GPIO_PIN_SET);
+	HAL_GPIO_WritePin(EEPROM_A2_GPIO_Port, 				EEPROM_A2_Pin, 				GPIO_PIN_SET);
 
 	at24c32->i2c_handle 	= hi2c;
 	at24c32->device_address	= AT24C32_I2C_ADDRESS_WRITE;

@@ -30,6 +30,8 @@ Core/ST_Drivers/USB_DEVICE/App/usbd_cdc_if.o: \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_i2c_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pwr.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pwr_ex.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_rtc.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_rtc_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_tim.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_tim_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pcd.h \
@@ -70,6 +72,8 @@ C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_i2c_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pwr.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pwr_ex.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_rtc.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_rtc_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_tim.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_tim_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pcd.h:

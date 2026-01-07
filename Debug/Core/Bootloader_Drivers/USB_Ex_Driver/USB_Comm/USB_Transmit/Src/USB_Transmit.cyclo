@@ -1,0 +1,3 @@
+../Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_Transmit/Src/USB_Transmit.c:15:9:USB_Transmit	1
+../Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_Transmit/Src/USB_Transmit.c:21:20:USB_Prepare_Transmit_Buffer	3
+../Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_Transmit/Src/USB_Transmit.c:53:9:Calculate_Checksum	2

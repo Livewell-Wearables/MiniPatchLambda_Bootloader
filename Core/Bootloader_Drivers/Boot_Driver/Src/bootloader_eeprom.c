@@ -26,8 +26,11 @@ bool BL_EEPROM_Read(S_AT24C32_t *at24c32, bl_eeprom_meta_t *meta)
     /* Magic number kontrolü */
     if (meta->magic != BL_EE_MAGIC)
     {
+    	meta->update_flag = BL_EE_FLAG_NONE;
         return false;
     }
+
+    meta->update_flag = BL_EE_FLAG_UPDATE_REQUEST;
 
     return true;
 }
@@ -35,44 +38,9 @@ bool BL_EEPROM_Read(S_AT24C32_t *at24c32, bl_eeprom_meta_t *meta)
 /**
  * @brief EEPROM'a boot metadata yazar
  */
-bool BL_EEPROM_Write(S_AT24C32_t *at24c32, const bl_eeprom_meta_t *meta)
+HAL_StatusTypeDef BL_EEPROM_ClearUpdateFlag(S_AT24C32_t *at24c32)
 {
-    bl_eeprom_meta_t tmp;
-
-    if (meta == NULL)
-    {
-        return false;
-    }
-
-    tmp = *meta;
-    tmp.magic = BL_EE_MAGIC;
-
-    /* CRC hesapla */
-/*
-    tmp.crc = CRC32_Calculate((uint8_t *)&tmp,
-                              sizeof(bl_eeprom_meta_t) - sizeof(uint32_t));
-*/
-    /* EEPROM'a yaz */
-    /*
-    return EEPROM_Write(BL_EE_META_ADDR,
-                         (const uint8_t *)&tmp,
-                         sizeof(bl_eeprom_meta_t));
-    */
+    return AT24C32_WriteU32(at24c32, EEPROM_DEVICE_UPDATE_FLAG_ADDRESS, 0xFFFFFFFF);
 }
 
-/**
- * @brief EEPROM üzerindeki update isteğini temizler
- */
-bool BL_EEPROM_ClearUpdateFlag(S_AT24C32_t *at24c32)
-{
-    bl_eeprom_meta_t meta;
-
-    if (BL_EEPROM_Read(at24c32, &meta) != true)
-    {
-        return false;
-    }
-
-    meta.update_flag = BL_EE_FLAG_NONE;
-    return BL_EEPROM_Write(at24c32, &meta);
-}
 

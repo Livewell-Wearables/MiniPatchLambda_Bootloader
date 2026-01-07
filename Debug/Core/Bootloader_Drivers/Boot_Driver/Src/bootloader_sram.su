@@ -1,3 +1,3 @@
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_sram.c:12:6:BL_Backup_Read	24	static
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_sram.c:34:6:BL_Backup_Write	24	static
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_sram.c:51:6:BL_Backup_Clear	16	static
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_sram.c:12:6:BL_RTCBackup_IsUpdateRequested	24	static
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_sram.c:34:6:BL_RTCBackup_SetUpdateRequest	16	static
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_sram.c:47:6:BL_RTCBackup_ClearUpdateRequest	16	static
