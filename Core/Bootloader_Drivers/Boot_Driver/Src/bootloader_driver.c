@@ -13,7 +13,16 @@
 
 #include "bootloader_driver.h"
 
+/* =========================================================
+ * Global Variables
+ * ========================================================= */
+USBCommParameters_t usbCommParameters;
+
+/* =========================================================
+ * External Variables
+ * ========================================================= */
 extern S_AT24C32_t at24c32;
+
 
 /* =========================================================
  * Local Type Definitions
@@ -69,27 +78,30 @@ void Bootloader_Init(BootloaderCtx_t *ctx)
         return;
     }
 
-    ctx->state              = BL_STATE_INIT;
-    ctx->error              = BL_ERR_NONE;
+    ctx->state              			= BL_STATE_INIT;
+    ctx->error              			= BL_ERR_NONE;
 
-    ctx->tick_start         = HAL_GetTick();
-    ctx->boot_elapsed_ms    = 0U;
+    ctx->tick_start         			= HAL_GetTick();
+    ctx->boot_elapsed_ms    			= 0U;
 
-    ctx->update_requested   = false;
-    ctx->update_in_progress = false;
+    ctx->update_requested   			= false;
+    ctx->update_in_progress 			= false;
 
-    ctx->app_base           = BL_APP_BASE_ADDRESS;
-    ctx->app_valid          = false;
+    ctx->app_base           			= BL_APP_BASE_ADDRESS;
+    ctx->app_valid          			= false;
 
-    ctx->fw_size            = 0U;
-    ctx->fw_received        = 0U;
-    ctx->fw_crc_expected    = 0U;
-    ctx->fw_crc_calculated  = 0U;
+    ctx->update_info.fw_size_bytes		= 0U;
+    ctx->update_info.fw_crc32  			= 0U;
+    ctx->update_info.fw_format 			= 0U;
+    ctx->update_info.fw_version.major 	= 0U;
+    ctx->update_info.fw_version.minor 	= 0U;
+    ctx->update_info.fw_version.patch 	= 0U;
 
-    ctx->last_event         = 0U;
-    ctx->reset_reason       = RCC->CSR;
 
-    ctx->state              = BL_STATE_CHECK_UPDATE;
+    ctx->last_event         			= 0U;
+    ctx->reset_reason       			= RCC->CSR;
+
+    ctx->state              			= BL_STATE_CHECK_UPDATE;
 }
 
 /**
@@ -109,6 +121,8 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
     static uint32_t updateInfoTime = 0;
     ctx->boot_elapsed_ms = HAL_GetTick() - ctx->tick_start;
 
+    System_USB_Communication_Receive_Function(&usbCommParameters);
+
     switch (ctx->state)
     {
         case BL_STATE_CHECK_UPDATE:
@@ -119,6 +133,7 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
             {
                 ctx->state 			= BL_STATE_UPDATE_MODE;
                 ctx->updateState	= BL_UPDATE_IDLE;
+        		updateInfoTime 		= HAL_GetTick();
             }
             else
             {
@@ -142,6 +157,7 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
                     ctx->error 			= BL_ERR_INVALID_VECTOR;
                     ctx->state 			= BL_STATE_UPDATE_MODE;
                     ctx->updateState	= BL_UPDATE_IDLE;
+            		updateInfoTime 		= HAL_GetTick();
                 }
             }
             break;
@@ -168,11 +184,29 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         	case BL_UPDATE_IDLE:
         		/*
         		 * Bazı kontroller yapılır ve BL_UPDATE_READY ye yönlendirilir.
+        		 *
+        		 * 30 sn içerisinde PC tarafından komut gelmezse sistemi kapat yada applicationa geç
         		 */
 
-                ctx->updateState	= BL_UPDATE_READY;
+        		if(usbCommParameters.USB_rx_parameters.usbRxFlag)
+        		{
+    				usbCommParameters.USB_rx_parameters.usbRxFlag = 0;
 
-        		updateInfoTime = HAL_GetTick();
+        			if(usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type 								== USB_PACKET_FIRMWARE_UPDATE &&
+        				usbCommParameters.USB_rx_parameters.USB_rx_packet_info.command.USB_firmware_update_command_id 	== USB_FIRMWARE_UPDATE_STATUS_REQ)
+        			{
+                        ctx->updateState	= BL_UPDATE_READY;
+
+                		updateInfoTime = HAL_GetTick();
+        			}
+
+        			memset(&usbCommParameters, 0, sizeof(usbCommParameters));
+        		}
+
+        		if(abs(ctx->boot_elapsed_ms - updateInfoTime) >= 30000)
+        		{
+        			// TODO: Go to shutdown or application
+        		}
 
         		break;
 
@@ -181,19 +215,75 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		/*
         		 * Her 1 saniye de 1 masaüstü uygulamasına mesaj gönderilir.
         		 */
-        		if(ctx->boot_elapsed_ms - updateInfoTime >= 1000)
+        		if(abs(ctx->boot_elapsed_ms - updateInfoTime) >= 100)
         		{
             		updateInfoTime = HAL_GetTick();
             		/*
             		 * MCU - > PC : Send BL Update Ready Info
             		 */
-            		USBTxParameters_t *USB_tx_param = USB_Prepare_Transmit_Buffer(USB_PACKET_FIRMWARE_UPDATE, USB_FIRMWARE_UPDATE_READY, 0, 0, NULL);
-            		USB_Transmit(USB_tx_param->usbTxBuf, USB_tx_param->usbTxBufLen);
+            		usbCommParameters.USB_tx_parameters = *USB_Prepare_Transmit_Buffer(USB_PACKET_FIRMWARE_UPDATE, USB_FIRMWARE_UPDATE_READY, 0, 0, NULL);
+            		USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf, usbCommParameters.USB_tx_parameters.usbTxBufLen);
+
+                    ctx->updateState	= BL_UPDATE_REQUEST_UPDATE_INFO;
         		}
 
         		break;
 
         	case BL_UPDATE_REQUEST_UPDATE_INFO:
+
+        		if (usbCommParameters.USB_rx_parameters.usbRxFlag)
+        		{
+        		    usbCommParameters.USB_rx_parameters.usbRxFlag = 0;
+
+        		    if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type ==
+        		            USB_PACKET_FIRMWARE_UPDATE &&
+        		        usbCommParameters.USB_rx_parameters.USB_rx_packet_info.command
+        		            .USB_firmware_update_command_id ==
+        		            USB_FIRMWARE_UPDATE_PACKET_INFO)
+        		    {
+        		        uint8_t *rx;
+
+        		        /* RX data pointer */
+        		        rx = usbCommParameters.USB_rx_parameters.USB_rx_packet_info.data;
+
+        		        /* Güvenlik: uzunluk kontrolü */
+        		        if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.data_len >= 13U)
+        		        {
+        		            bl_update_info_t *info = &ctx->update_info;
+
+        		            /* fw_size_bytes */
+        		            info->fw_size_bytes =
+        		                  ((uint32_t)rx[0])
+        		                | ((uint32_t)rx[1] << 8)
+        		                | ((uint32_t)rx[2] << 16)
+        		                | ((uint32_t)rx[3] << 24);
+
+        		            /* fw_crc32 */
+        		            info->fw_crc32 =
+        		                  ((uint32_t)rx[4])
+        		                | ((uint32_t)rx[5] << 8)
+        		                | ((uint32_t)rx[6] << 16)
+        		                | ((uint32_t)rx[7] << 24);
+
+        		            /* fw_format */
+        		            info->fw_format = (bl_fw_format_t)rx[8];
+
+        		            /* fw_version */
+        		            info->fw_version.major = rx[10];
+        		            info->fw_version.minor = rx[11];
+        		            info->fw_version.patch = rx[12];
+
+        		            /* State ilerlet */
+        		            ctx->updateState = BL_UPDATE_CHECK_INFO;
+        		        }
+        		        else
+        		        {
+        		            /* Paket eksik / hatalı */
+        		            ctx->updateState = BL_UPDATE_ERROR;
+        		        }
+        		    }
+        		}
+
 
         		break;
 
@@ -235,7 +325,7 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
         case BL_STATE_VERIFY:
         {
-            if (ctx->fw_crc_calculated == ctx->fw_crc_expected)
+            if (ctx->update_info.fw_crc32 == ctx->update_info.fw_crc32)
             {
                 ctx->state = BL_STATE_JUMP;
             }

@@ -121,8 +121,9 @@ typedef enum
 
 typedef enum
 {
-	USB_FIRMWARE_UPDATE_READY			= 0x10,		// MCU - - - > PC
-	USB_FIRMWARE_UPDATE_PACKET_INFO		= 0x11,		// PC  - - - > MCU
+	USB_FIRMWARE_UPDATE_STATUS_REQ		= 0x10,		// PC  - - - > MCU
+	USB_FIRMWARE_UPDATE_READY			= 0x11,		// MCU - - - > PC
+	USB_FIRMWARE_UPDATE_PACKET_INFO		= 0x12,		// PC  - - - > MCU
 
 }USBFirmwareUpdateCommandID_t;
 
@@ -313,7 +314,6 @@ typedef struct
 {
     USBTxParameters_t   USB_tx_parameters;
     USBRxParameters_t   USB_rx_parameters;
-    
 }USBCommParameters_t;
 
 

@@ -232,6 +232,8 @@ static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 
   case CDC_SET_CONTROL_LINE_STATE:
 
+	    break;
+
     break;
 
   case CDC_SEND_BREAK:
@@ -264,7 +266,7 @@ static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_HS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 11 */
-	//USB_RXCallback(Buf, Len);
+	USB_RXCallback(Buf, Len);
 
 	USBD_CDC_SetRxBuffer(&hUsbDeviceHS, &Buf[0]);
 	USBD_CDC_ReceivePacket(&hUsbDeviceHS);

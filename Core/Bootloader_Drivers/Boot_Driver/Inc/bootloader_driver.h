@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include "bootloader_eeprom.h"
 #include "bootloader_sram.h"
+#include "USB_Receive.h"
 #include "USB_Transmit.h"
 
 extern RTC_HandleTypeDef hrtc;
@@ -73,9 +74,30 @@ typedef enum
     BL_ERR_UNKNOWN
 } bl_error_t;
 
+typedef enum
+{
+    BL_FW_FORMAT_BIN = 0,
+    BL_FW_FORMAT_HEX = 1
+} bl_fw_format_t;
+
 /* =========================================================
  * Bootloader Control / Context Structure
  * ========================================================= */
+typedef struct
+{
+    uint8_t major;   /* Major version */
+    uint8_t minor;   /* Minor version */
+    uint8_t patch;   /* Patch version */
+} bl_fw_version_t;
+
+typedef struct
+{
+    uint32_t 			fw_size_bytes;     // Toplam firmware boyutu
+    uint32_t 			fw_crc32;          // Tüm dosyanın CRC32
+    bl_fw_format_t  	fw_format;         // 0=BIN, 1=HEX
+    bl_fw_version_t		fw_version;        // opsiyonel
+} bl_update_info_t;
+
 typedef struct
 {
     /* --- Core state --- */
@@ -95,10 +117,7 @@ typedef struct
     bool         		app_valid;
 
     /* --- Firmware transfer (ileride) --- */
-    uint32_t     		fw_size;
-    uint32_t     		fw_received;
-    uint32_t     		fw_crc_expected;
-    uint32_t     		fw_crc_calculated;
+    bl_update_info_t 	update_info;
 
     /* --- Debug / diagnostics --- */
     uint32_t     		last_event;

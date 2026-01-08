@@ -1,6 +1,6 @@
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:65:6:Bootloader_Init	2
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:102:6:Bootloader_Task	14
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:273:6:Bootloader_JumpToApplication	3
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:301:13:BL_IsVectorTableSane	6
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:334:13:BL_Jump	2
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:391:13:BL_CheckUpdateRequest	8
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:74:6:Bootloader_Init	2
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:114:6:Bootloader_Task	21
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:363:6:Bootloader_JumpToApplication	3
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:391:13:BL_IsVectorTableSane	6
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:424:13:BL_Jump	2
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:481:13:BL_CheckUpdateRequest	8

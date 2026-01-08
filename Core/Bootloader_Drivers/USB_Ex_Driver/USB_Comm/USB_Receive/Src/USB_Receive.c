@@ -19,11 +19,11 @@ void USB_Rx_Data_Length_Control_Function(void);
 void USB_Rx_Data_Control_Function(void);
 void USB_Rx_Checksum_Control_Function(void);
 void USB_Rx_Stop_Bit_Control_Function(void);
-void USB_Rx_Operation_Function(void);
+void USB_Rx_Operation_Function(USBCommParameters_t *USB_Comm_ParametersLocal);
 static void USB_Rx_Packet_Reset(void);
 
 
-void System_USB_Communication_Receive_Function(void)
+void System_USB_Communication_Receive_Function(USBCommParameters_t *USB_Comm_ParametersLocal)
 {
     switch (USB_Comm_Parameters.USB_rx_parameters.device_rx_state)
     {
@@ -55,7 +55,7 @@ void System_USB_Communication_Receive_Function(void)
         USB_Rx_Stop_Bit_Control_Function();
         break;
     case USB_RX_OPERATION_STATE:
-        USB_Rx_Operation_Function();
+        USB_Rx_Operation_Function(USB_Comm_ParametersLocal);
         break;
 
     default:
@@ -98,6 +98,7 @@ void USB_Rx_Packet_Type_Control_Function(void)
     if(USB_Comm_Parameters.USB_rx_parameters.usbRxBuf[USB_INDEX_3_PACKET_TYPE] != USB_PACKET_PACKET_TYPE_TEST &&
        USB_Comm_Parameters.USB_rx_parameters.usbRxBuf[USB_INDEX_3_PACKET_TYPE] != USB_PACKET_PACKET_TYPE_CONFIG &&
 	   USB_Comm_Parameters.USB_rx_parameters.usbRxBuf[USB_INDEX_3_PACKET_TYPE] != USB_PACKET_PACKET_FLASH &&
+	   USB_Comm_Parameters.USB_rx_parameters.usbRxBuf[USB_INDEX_3_PACKET_TYPE] != USB_PACKET_FIRMWARE_UPDATE &&
 	   USB_Comm_Parameters.USB_rx_parameters.usbRxBuf[USB_INDEX_3_PACKET_TYPE] != USB_PACKET_PACKET_FLASH_DEBUG)
     {
         USB_Rx_Packet_Reset();
@@ -222,10 +223,11 @@ void USB_Rx_Command_ID_Control_Function(void)
         case USB_PACKET_FIRMWARE_UPDATE:
         	switch (USB_Comm_Parameters.USB_rx_parameters.usbRxBuf[USB_INDEX_4_COMMAND_ID])
         	{
+        		case USB_FIRMWARE_UPDATE_STATUS_REQ:
 				case USB_FIRMWARE_UPDATE_READY:
 				case USB_FIRMWARE_UPDATE_PACKET_INFO:
 
-	            	USB_Comm_Parameters.USB_rx_parameters.USB_rx_packet_info.command.USB_flash_command_id = USB_Comm_Parameters.USB_rx_parameters.usbRxBuf[USB_INDEX_4_COMMAND_ID];
+	            	USB_Comm_Parameters.USB_rx_parameters.USB_rx_packet_info.command.USB_firmware_update_command_id = USB_Comm_Parameters.USB_rx_parameters.usbRxBuf[USB_INDEX_4_COMMAND_ID];
 	                USB_Comm_Parameters.USB_rx_parameters.device_rx_state = USB_RX_PROCESS_TYPE_CONTROL_STATE;
 
 					break;
@@ -322,36 +324,39 @@ void USB_Rx_Stop_Bit_Control_Function(void)
     }
 }
 
-void USB_Rx_Operation_Function(void)
+void USB_Rx_Operation_Function(USBCommParameters_t *USB_Comm_ParametersLocal)
 {
     if(USB_Comm_Parameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_PACKET_TYPE_TEST)
     {
-
         USB_Comm_Parameters.USB_rx_parameters.device_rx_state = USB_RX_WAIT_PACKET_STATE;
 
         USB_Rx_Packet_Reset();
-
     }
     else if(USB_Comm_Parameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_PACKET_TYPE_CONFIG)
     {
-
     	USB_Comm_Parameters.USB_rx_parameters.device_rx_state = USB_RX_WAIT_PACKET_STATE;
 
     	USB_Rx_Packet_Reset();
     }
     else if(USB_Comm_Parameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_PACKET_FLASH)
     {
-
     	USB_Comm_Parameters.USB_rx_parameters.device_rx_state = USB_RX_WAIT_PACKET_STATE;
 
     	USB_Rx_Packet_Reset();
-
     }
     else if(USB_Comm_Parameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_PACKET_FLASH_DEBUG)
     {
         USB_Comm_Parameters.USB_rx_parameters.device_rx_state = USB_RX_WAIT_PACKET_STATE;
 
     	USB_Rx_Packet_Reset();        
+    }
+    else if(USB_Comm_Parameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_FIRMWARE_UPDATE)
+    {
+    	memcpy((void *)USB_Comm_ParametersLocal, (const void *)&USB_Comm_Parameters, sizeof(USB_Comm_Parameters));
+
+    	USB_Comm_Parameters.USB_rx_parameters.device_rx_state = USB_RX_WAIT_PACKET_STATE;
+
+    	USB_Rx_Packet_Reset();
     }
 }
 

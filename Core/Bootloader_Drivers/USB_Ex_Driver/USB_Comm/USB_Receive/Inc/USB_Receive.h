@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include "USB_General.h"
 
-void System_USB_Communication_Receive_Function(void);
+void System_USB_Communication_Receive_Function(USBCommParameters_t *USB_Comm_ParametersLocal);
 void USB_RXCallback(uint8_t *buf, uint32_t *len);
 
 
