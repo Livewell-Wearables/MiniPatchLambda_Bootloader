@@ -19,6 +19,7 @@ RM := rm -rf
 -include Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_Transmit/Src/subdir.mk
 -include Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_Receive/Src/subdir.mk
 -include Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_General/Src/subdir.mk
+-include Core/Bootloader_Drivers/CRC/Src/subdir.mk
 -include Core/Bootloader_Drivers/Boot_Driver/Src/subdir.mk
 -include Core/Bootloader_Drivers/AT24C32_Driver/Src/subdir.mk
 -include objects.mk

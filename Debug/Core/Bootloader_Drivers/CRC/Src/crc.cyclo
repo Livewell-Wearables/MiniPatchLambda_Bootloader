@@ -1,0 +1,2 @@
+../Core/Bootloader_Drivers/CRC/Src/crc.c:11:10:CRC32_Calculate	4
+../Core/Bootloader_Drivers/CRC/Src/crc.c:35:9:CRC32_Verify	4

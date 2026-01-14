@@ -1,6 +1,7 @@
 ../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:74:6:Bootloader_Init	16	static
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:114:6:Bootloader_Task	32	static
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:363:6:Bootloader_JumpToApplication	16	static
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:391:13:BL_IsVectorTableSane	24	static
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:424:13:BL_Jump	32	static,ignoring_inline_asm
-../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:481:13:BL_CheckUpdateRequest	40	static
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:114:6:Bootloader_Task	56	static
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:495:6:Bootloader_JumpToApplication	16	static
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:512:6:Bootloader_Packet_Parser	32	static
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:553:13:BL_IsVectorTableSane	24	static
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:586:13:BL_Jump	32	static,ignoring_inline_asm
+../Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_driver.c:643:13:BL_CheckUpdateRequest	40	static

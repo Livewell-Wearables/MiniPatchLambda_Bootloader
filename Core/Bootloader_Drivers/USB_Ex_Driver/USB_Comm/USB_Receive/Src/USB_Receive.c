@@ -6,7 +6,7 @@
  */
 
 #include "USB_Receive.h"
-
+#include "usbd_cdc_if.h"
 
 extern USBCommParameters_t USB_Comm_Parameters;
 
@@ -226,6 +226,7 @@ void USB_Rx_Command_ID_Control_Function(void)
         		case USB_FIRMWARE_UPDATE_STATUS_REQ:
 				case USB_FIRMWARE_UPDATE_READY:
 				case USB_FIRMWARE_UPDATE_PACKET_INFO:
+				case USB_FIRMWARE_UPDATE_SEND_PACKET:
 
 	            	USB_Comm_Parameters.USB_rx_parameters.USB_rx_packet_info.command.USB_firmware_update_command_id = USB_Comm_Parameters.USB_rx_parameters.usbRxBuf[USB_INDEX_4_COMMAND_ID];
 	                USB_Comm_Parameters.USB_rx_parameters.device_rx_state = USB_RX_PROCESS_TYPE_CONTROL_STATE;
@@ -369,9 +370,90 @@ static void USB_Rx_Packet_Reset(void)
     USB_Comm_Parameters.USB_rx_parameters.usbRxBufLen = 0;
 }
 
+static int32_t find_header_index(const uint8_t *buf, uint32_t len)
+{
+    if (len < 2u) return -1;
+
+    for (uint32_t i = 0; i < (len - 1u); i++)
+    {
+        if ((buf[i] == USB_PACKET_HEADER_1) && (buf[i + 1u] == USB_PACKET_HEADER_2))
+        {
+            return (int32_t)i;
+        }
+    }
+    return -1;
+}
+
+volatile USB_RxDebug_t g_usb_rx_debug = {0};
+
+
 void USB_RXCallback(uint8_t *buf, uint32_t *len)
 {
+	/*
+	 * ESKİ HALİ
+	 */
+	/*
     memcpy(USB_Comm_Parameters.USB_rx_parameters.usbRxBuf, buf, *len);
     USB_Comm_Parameters.USB_rx_parameters.usbRxBufLen = *len;
     USB_Comm_Parameters.USB_rx_parameters.usbRxFlag = 1;
+    */
+	uint32_t rxLen 	= *len;
+	static uint16_t msgLen = 0;
+
+	if((buf == NULL) || len == NULL)
+		return;
+
+	g_usb_rx_debug.rx_callback_count += 1;
+	g_usb_rx_debug.last_rx_len		  = rxLen;
+
+	memcpy(&g_usb_rx_debug.raw_bytes[g_usb_rx_debug.expected_frame_len], buf, rxLen);
+	g_usb_rx_debug.expected_frame_len += g_usb_rx_debug.last_rx_len;
+
+	if(g_usb_rx_debug.frame_in_progress == 0)
+	{
+		if(find_header_index(g_usb_rx_debug.raw_bytes, rxLen) != -1)
+		{
+			// Header'lı veri
+			g_usb_rx_debug.frame_in_progress = 1;
+
+			msgLen = (g_usb_rx_debug.raw_bytes[5] << 8) | (g_usb_rx_debug.raw_bytes[6]);
+		}
+	}
+
+	if((msgLen + 10) == g_usb_rx_debug.expected_frame_len)
+	{
+		// Verinin tamamı gelmiştir işlenebilir.
+		g_usb_rx_debug.total_received_bytes = g_usb_rx_debug.expected_frame_len;
+		g_usb_rx_debug.frame_in_progress 	= 0;
+		g_usb_rx_debug.frame_completed 	 	= 1;
+	}
+	else if((msgLen + 10) < g_usb_rx_debug.expected_frame_len)
+	{
+		g_usb_rx_debug.frame_completed 		= 0;
+		g_usb_rx_debug.rx_callback_count 	= 0;
+		g_usb_rx_debug.expected_frame_len 	= 0;
+		g_usb_rx_debug.frame_in_progress    = 0;
+		g_usb_rx_debug.last_rx_len			= 0;
+	}
+
+	if(g_usb_rx_debug.frame_completed)
+	{
+		memcpy(USB_Comm_Parameters.USB_rx_parameters.usbRxBuf,
+			   g_usb_rx_debug.raw_bytes,
+			   g_usb_rx_debug.total_received_bytes);
+
+	    USB_Comm_Parameters.USB_rx_parameters.usbRxBufLen 	= g_usb_rx_debug.total_received_bytes;
+	    USB_Comm_Parameters.USB_rx_parameters.usbRxFlag 	= 1;
+
+		g_usb_rx_debug.frame_completed 		= 0;
+		g_usb_rx_debug.rx_callback_count 	= 0;
+		g_usb_rx_debug.expected_frame_len 	= 0;
+		g_usb_rx_debug.frame_in_progress    = 0;
+	}
 }
+
+
+
+
+
+

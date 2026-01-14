@@ -97,6 +97,7 @@
 #define USB_INDEX_7_DATA_LEN_LSB                    6
 #define USB_INDEX_DATA_START                        7
 #define USB_CONSTANT_PACKET_VALUES_FOR_CHECKSUM     5
+#define USB_OVERHEAD_BYTES  						10u   /* 2(H) +3(type/cmd/proc)+2(len)+1(crc)+2(F) */
 
 
 #define SUCCESSFULL 	0
@@ -124,7 +125,9 @@ typedef enum
 	USB_FIRMWARE_UPDATE_STATUS_REQ		= 0x10,		// PC  - - - > MCU
 	USB_FIRMWARE_UPDATE_READY			= 0x11,		// MCU - - - > PC
 	USB_FIRMWARE_UPDATE_PACKET_INFO		= 0x12,		// PC  - - - > MCU
-
+	USB_FIRMWARE_UPDATE_GET_PACKET		= 0x13, 	// MCU - - - > PC
+	USB_FIRMWARE_UPDATE_SEND_PACKET		= 0x14,     // PC  - - - > MCU
+	USB_FIRMWARE_UPDATE_VERIFY_PACKET	= 0x15,     // MCU - - - > PC
 }USBFirmwareUpdateCommandID_t;
 
 typedef enum
@@ -299,13 +302,14 @@ typedef struct
 
 typedef struct
 {
-    uint8_t usbRxBuf[USB_MAX_BUFFER_LEN];
-    uint16_t usbRxBufLen;
-    uint8_t usbRxFlag;
-    USBRxDeviceState_t device_rx_state;
-    USBRxPacketInfo_t USB_rx_packet_info;
+    uint8_t 			usbRxBuf[USB_MAX_BUFFER_LEN];
+    uint16_t 			usbRxBufLen;
+    uint8_t 			usbRxFlag;
+    USBRxDeviceState_t 	device_rx_state;
+    USBRxPacketInfo_t 	USB_rx_packet_info;
     USBPacketErrors_t   USB_packet_error;
-
+    uint16_t 			expectedFrameLen;   /* Header + payload + CRC + footer */
+    uint8_t  			headerLocked;       /* AA55 bulundu mu? (0/1) */
 }USBRxParameters_t;
 //******************************************************************//
 //******************************************************************//

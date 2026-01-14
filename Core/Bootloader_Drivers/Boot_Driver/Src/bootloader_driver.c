@@ -36,7 +36,7 @@ typedef void (*pFunction)(void);
 /* =========================================================
  * Local Function Prototypes
  * ========================================================= */
-
+extern volatile USB_RxDebug_t g_usb_rx_debug;
 /**
  * @brief Validate application vector table sanity
  *
@@ -212,6 +212,10 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
         	case BL_UPDATE_READY:
 
+        		g_usb_rx_debug.rx_callback_count 	= 0;
+        		g_usb_rx_debug.frame_completed 		= 0;
+        	    g_usb_rx_debug.total_received_bytes = 0;
+
         		/*
         		 * Her 1 saniye de 1 masaüstü uygulamasına mesaj gönderilir.
         		 */
@@ -224,12 +228,18 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
             		usbCommParameters.USB_tx_parameters = *USB_Prepare_Transmit_Buffer(USB_PACKET_FIRMWARE_UPDATE, USB_FIRMWARE_UPDATE_READY, 0, 0, NULL);
             		USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf, usbCommParameters.USB_tx_parameters.usbTxBufLen);
 
+        			memset(&usbCommParameters, 0, sizeof(usbCommParameters));
+
                     ctx->updateState	= BL_UPDATE_REQUEST_UPDATE_INFO;
         		}
 
         		break;
 
         	case BL_UPDATE_REQUEST_UPDATE_INFO:
+
+        		g_usb_rx_debug.rx_callback_count 	= 0;
+        		g_usb_rx_debug.frame_completed 		= 0;
+        	    g_usb_rx_debug.total_received_bytes = 0;
 
         		if (usbCommParameters.USB_rx_parameters.usbRxFlag)
         		{
@@ -269,9 +279,9 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		            info->fw_format = (bl_fw_format_t)rx[8];
 
         		            /* fw_version */
-        		            info->fw_version.major = rx[10];
-        		            info->fw_version.minor = rx[11];
-        		            info->fw_version.patch = rx[12];
+        		            info->fw_version.major = rx[11];
+        		            info->fw_version.minor = rx[10];
+        		            info->fw_version.patch = rx[9];
 
         		            /* State ilerlet */
         		            ctx->updateState = BL_UPDATE_CHECK_INFO;
@@ -284,22 +294,144 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		    }
         		}
 
-
         		break;
 
         	case BL_UPDATE_CHECK_INFO:
+
+        		g_usb_rx_debug.rx_callback_count 	= 0;
+        		g_usb_rx_debug.frame_completed 		= 0;
+        	    g_usb_rx_debug.total_received_bytes = 0;
+
+        		if(ctx->update_info.fw_size_bytes <= BL_APP_MAX_SIZE)
+        		{
+        			ctx->updateState 		= BL_UPDATE_REQUEST_PACKET;
+        			ctx->update_requested 	= true;
+
+        			ctx->update_packet_info.startAddress 		= 0x00000000;
+        			ctx->update_packet_info.remainingDataLength = ctx->update_info.fw_size_bytes;
+        		}
+        		else
+        		{
+        			ctx->updateState = BL_UPDATE_ERROR;
+        		}
 
         		break;
 
         	case BL_UPDATE_REQUEST_PACKET:
 
+        		if(ctx->update_requested && ctx->update_in_progress == false)
+        		{
+        			ctx->update_requested 	= false;
+        			ctx->update_in_progress	= true;
+
+        			/*
+        			 * Belirli bir adresten itibaren belirli uzunlukta veri talep et
+        			 */
+        			if(ctx->update_packet_info.remainingDataLength >= 1024)
+        			{
+        				ctx->update_packet_info.requestedDataLength = 1024;
+        			}
+        			else
+        			{
+        				ctx->update_packet_info.requestedDataLength = ctx->update_packet_info.remainingDataLength;
+        			}
+
+        			uint8_t packet[8] 	= {0};
+        			uint16_t dataLength = 8;
+
+        			packet[0] = (uint8_t)( ctx->update_packet_info.startAddress >> 24 & 0xFF);
+        			packet[1] = (uint8_t)( ctx->update_packet_info.startAddress >> 16 & 0xFF);
+        			packet[2] = (uint8_t)( ctx->update_packet_info.startAddress >> 8  & 0xFF);
+        			packet[3] = (uint8_t)( ctx->update_packet_info.startAddress >> 0  & 0xFF);
+        			packet[4] = (uint8_t)( ctx->update_packet_info.requestedDataLength >> 24 & 0xFF);
+        			packet[5] = (uint8_t)( ctx->update_packet_info.requestedDataLength >> 16 & 0xFF);
+        			packet[6] = (uint8_t)( ctx->update_packet_info.requestedDataLength >> 8  & 0xFF);
+        			packet[7] = (uint8_t)( ctx->update_packet_info.requestedDataLength >> 0  & 0xFF);
+
+
+            		usbCommParameters.USB_tx_parameters = *USB_Prepare_Transmit_Buffer(USB_PACKET_FIRMWARE_UPDATE,
+																					   USB_FIRMWARE_UPDATE_GET_PACKET,
+																					   0,
+																					   dataLength,
+																					   packet);
+            		uint8_t transmitStatus = USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf,
+            					 	 	 	 	 	 	  usbCommParameters.USB_tx_parameters.usbTxBufLen);
+
+        			memset(&usbCommParameters, 0, sizeof(usbCommParameters));
+
+        			ctx->updateState = BL_UPDATE_RECEIVE_DATA;
+        		}
+
         		break;
 
         	case BL_UPDATE_RECEIVE_DATA:
 
+        		if (usbCommParameters.USB_rx_parameters.usbRxFlag)
+        		{
+        		    usbCommParameters.USB_rx_parameters.usbRxFlag = 0;
+
+        		    if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type ==
+        		            USB_PACKET_FIRMWARE_UPDATE &&
+        		        usbCommParameters.USB_rx_parameters.USB_rx_packet_info.command
+        		            .USB_firmware_update_command_id ==
+        		            		USB_FIRMWARE_UPDATE_SEND_PACKET)
+        		    {
+        		        uint8_t *rx;
+
+        		        /* RX data pointer */
+        		        rx = usbCommParameters.USB_rx_parameters.USB_rx_packet_info.data;
+
+        		        /* Güvenlik: uzunluk kontrolü */
+        		        if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.data_len >= ctx->update_packet_info.requestedDataLength)
+        		        {
+        		        	/*
+        		        	 * Gelen data içerisinden ilk ctx->update_packet_info.requestedDataLength kadarı veriyi
+        		        	 * ondan sonraki 4 byte ise CRC32 yi içermektedir. İlk olarak crc32 kontorlünün yapılması gerekir.
+        		        	 */
+
+        		        	Bootloader_Packet_Parser(&ctx->update_packet,
+        		        							 usbCommParameters.USB_rx_parameters.USB_rx_packet_info.data,
+        		        							 usbCommParameters.USB_rx_parameters.USB_rx_packet_info.data_len);
+
+                			ctx->updateState = BL_UPDATE_VERIFY;
+        		        }
+
+        		    }
+        		}
+
         		break;
 
         	case BL_UPDATE_VERIFY:
+
+        		if(CRC32_Verify(ctx->update_packet.packetBuff, ctx->update_packet.packetLen, ctx->update_packet.packetCRC))
+        		{
+        			/*
+        			 * CRC OK Gönder ve devam et
+        			 */
+
+        			ctx->update_packet.crcStatus 	= USB_CRC_OK;
+        			ctx->updateState 				= BL_UPDATE_WRITE_FLASH;
+        		}
+        		else
+        		{
+        			/*
+        			 * CRC NOK Gönder ve paketi tekrar iste
+        			 */
+
+        			ctx->update_packet.crcStatus 	= USB_CRC_NOK;
+        			// --> ctx->updateState = BL_UPDATE_ERROR;
+        		}
+
+
+    			uint8_t usbPacket[1] 	 = {0};
+    			uint16_t usbPacketLength = 1;
+
+     			usbPacket[0]   = ctx->update_packet.crcStatus;
+
+        		usbCommParameters.USB_tx_parameters = *USB_Prepare_Transmit_Buffer(USB_PACKET_FIRMWARE_UPDATE, USB_FIRMWARE_UPDATE_VERIFY_PACKET, 0, usbPacketLength, usbPacket);
+        		USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf, usbCommParameters.USB_tx_parameters.usbTxBufLen);
+
+    			memset(&usbCommParameters, 0, sizeof(usbCommParameters));
 
         		break;
 
@@ -375,6 +507,36 @@ bool Bootloader_JumpToApplication(BootloaderCtx_t *ctx)
 
     BL_Jump(ctx->app_base);
     return true;
+}
+
+void Bootloader_Packet_Parser(bl_update_packet_t *ctxPacket, uint8_t *buff, uint16_t len)
+{
+    /* Start address */
+    ctxPacket->packetStartAddress =
+        ((uint32_t)buff[0] << 24) |
+        ((uint32_t)buff[1] << 16) |
+        ((uint32_t)buff[2] << 8)  |
+        ((uint32_t)buff[3]);
+
+    /* Data length */
+    ctxPacket->packetLen =
+        ((uint32_t)buff[4] << 24) |
+        ((uint32_t)buff[5] << 16) |
+        ((uint32_t)buff[6] << 8)  |
+        ((uint32_t)buff[7]);
+
+    /* Data copy */
+    for (uint32_t i = 0; i < ctxPacket->packetLen; i++)
+    {
+        ctxPacket->packetBuff[i] = buff[8 + i];
+    }
+
+    /* CRC32 */
+    ctxPacket->packetCRC =
+        ((uint32_t)buff[len - 4] << 24) |
+        ((uint32_t)buff[len - 3] << 16) |
+        ((uint32_t)buff[len - 2] << 8)  |
+        ((uint32_t)buff[len - 1]);
 }
 
 /* =========================================================
