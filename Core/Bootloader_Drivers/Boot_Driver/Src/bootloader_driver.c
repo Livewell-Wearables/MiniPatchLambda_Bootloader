@@ -78,6 +78,14 @@ void Bootloader_Init(BootloaderCtx_t *ctx)
         return;
     }
 
+    /* =====================================================
+     * META DATA INIT
+     * ===================================================== */
+    Meta_Init(&ctx->meta);
+
+    /* =====================================================
+     * BOOTLOADER INIT
+     * ===================================================== */
     ctx->state              			= BL_STATE_INIT;
     ctx->error              			= BL_ERR_NONE;
 
@@ -87,7 +95,11 @@ void Bootloader_Init(BootloaderCtx_t *ctx)
     ctx->update_requested   			= false;
     ctx->update_in_progress 			= false;
 
-    ctx->app_base           			= BL_APP_BASE_ADDRESS;
+    //ctx->app_base           			= BL_APP_BASE_ADDRESS;
+    if(ctx->meta.active_slot == META_SLOT_B)
+    	ctx->app_base = BL_APP_SLOT2_ADDRESS;
+    else
+    	ctx->app_base = BL_APP_BASE_ADDRESS;
     ctx->app_valid          			= false;
 
     ctx->update_info.fw_size_bytes		= 0U;
@@ -96,7 +108,6 @@ void Bootloader_Init(BootloaderCtx_t *ctx)
     ctx->update_info.fw_version.major 	= 0U;
     ctx->update_info.fw_version.minor 	= 0U;
     ctx->update_info.fw_version.patch 	= 0U;
-
 
     ctx->last_event         			= 0U;
     ctx->reset_reason       			= RCC->CSR;
@@ -131,7 +142,7 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
             if (ctx->update_requested == true)
             {
-                ctx->state 			= BL_STATE_UPDATE_MODE;
+                ctx->state 			= BL_STATE_SELECT_TARGET;
                 ctx->updateState	= BL_UPDATE_IDLE;
         		updateInfoTime 		= HAL_GetTick();
             }
@@ -155,11 +166,95 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
                 else
                 {
                     ctx->error 			= BL_ERR_INVALID_VECTOR;
-                    ctx->state 			= BL_STATE_UPDATE_MODE;
+                    ctx->state 			= BL_STATE_SELECT_TARGET;
                     ctx->updateState	= BL_UPDATE_IDLE;
             		updateInfoTime 		= HAL_GetTick();
                 }
             }
+            break;
+        }
+
+        case BL_STATE_SELECT_TARGET:
+        {
+            /* Slot doluluk bilgisi:
+             * Basit yaklaşım: app_base üzerinden aktif slot biliniyor varsayımı
+             * app_base = SLOT_A_BASE_ADDR veya SLOT_B_BASE_ADDR
+             */
+
+        	if(ctx->meta.active_slot == META_SLOT_NONE || ctx->meta.target_slot  == META_SLOT_NONE)
+        	{
+        		// Sıkıntı :D
+
+        		/*
+        		 * TODO: Belki tüm flash temizlenip hedef slot A olarak belirlenebilir.
+        		 */
+    			ctx->update_target_info.g_target_slot 			= BL_SLOT_A;
+        		ctx->update_target_info.g_target_base_addr 		= SLOT_A_BASE_ADDR;
+        		ctx->update_target_info.g_target_end_addr  		= SLOT_A_END_ADDR;
+        	}
+        	else
+        	{
+        		if(ctx->meta.target_slot == META_SLOT_A)
+        		{
+        			ctx->update_target_info.g_target_slot 		= BL_SLOT_A;
+            		ctx->update_target_info.g_target_base_addr 	= SLOT_A_BASE_ADDR;
+            		ctx->update_target_info.g_target_end_addr  	= SLOT_A_END_ADDR;
+        		}
+        		else
+        		{
+        			ctx->update_target_info.g_target_slot 		= BL_SLOT_B;
+            		ctx->update_target_info.g_target_base_addr 	= SLOT_B_BASE_ADDR;
+            		ctx->update_target_info.g_target_end_addr  	= SLOT_B_END_ADDR;
+        		}
+        	}
+
+            ctx->state 			= BL_STATE_ERASE_TARGET;
+
+            break;
+        }
+
+        case BL_STATE_ERASE_TARGET:
+        {
+            FLASH_EraseInitTypeDef erase_cfg;
+            uint32_t page_error = 0;
+
+            uint32_t base_addr = ctx->update_target_info.g_target_base_addr;
+            uint32_t end_addr  = ctx->update_target_info.g_target_end_addr;
+
+            uint32_t start_page = (base_addr - FLASH_BASE) / _FLASH_PAGE_SIZE;
+            uint32_t end_page   = (end_addr  - FLASH_BASE) / _FLASH_PAGE_SIZE;
+
+            erase_cfg.TypeErase = FLASH_TYPEERASE_PAGES;
+            erase_cfg.Banks     = FLASH_BANK_1;   /* Slot A/B bank ayırımı sende zaten var */
+            erase_cfg.Page      = start_page;
+            erase_cfg.NbPages   = (end_page - start_page) + 1U;
+
+            HAL_FLASH_Unlock();
+
+            if (HAL_FLASHEx_Erase(&erase_cfg, &page_error) != HAL_OK)
+            {
+                HAL_FLASH_Lock();
+                ctx->error = BL_ERR_FLASH_WRITE;
+                ctx->state = BL_STATE_ERROR;
+                break;
+            }
+
+            HAL_FLASH_Lock();
+
+            /* Yazma adreslerini target’a göre ayarla */
+            ctx->update_packet_info.startAddress   = base_addr;
+            ctx->update_packet_info.currentAddress = base_addr;
+
+            ctx->update_packet_info.remainingDataLength =
+                    (ctx->update_info.fw_size_bytes > 0U) ?
+                     ctx->update_info.fw_size_bytes :
+                     BL_APP_MAX_SIZE;
+
+            ctx->update_packet_info.requestedDataLength = BL_PACKET_SIZE;
+
+            ctx->state 			= BL_STATE_UPDATE_MODE;
+            ctx->updateState 	= BL_UPDATE_IDLE;
+
             break;
         }
 
@@ -222,11 +317,48 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		if(abs(ctx->boot_elapsed_ms - updateInfoTime) >= 100)
         		{
             		updateInfoTime = HAL_GetTick();
+
+            		uint8_t payload[2];
+
             		/*
             		 * MCU - > PC : Send BL Update Ready Info
             		 */
-            		usbCommParameters.USB_tx_parameters = *USB_Prepare_Transmit_Buffer(USB_PACKET_FIRMWARE_UPDATE, USB_FIRMWARE_UPDATE_READY, 0, 0, NULL);
-            		USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf, usbCommParameters.USB_tx_parameters.usbTxBufLen);
+
+                    /* Active slot */
+                    switch (ctx->meta.active_slot)
+                    {
+                        case META_SLOT_A: payload[0] = USB_MSG_BL_SLOT_A; break;
+                        case META_SLOT_B: payload[0] = USB_MSG_BL_SLOT_B; break;
+                        default:          payload[0] = USB_MSG_BL_SLOT_NONE; break;
+                    }
+
+                    /* Target slot */
+                    switch (ctx->meta.target_slot)
+                    {
+                        case META_SLOT_A: payload[1] = USB_MSG_BL_SLOT_A; break;
+                        case META_SLOT_B: payload[1] = USB_MSG_BL_SLOT_B; break;
+                        default:          payload[1] = USB_MSG_BL_SLOT_NONE; break;
+                    }
+
+                    usbCommParameters.USB_tx_parameters =
+                        *USB_Prepare_Transmit_Buffer(
+                            USB_PACKET_FIRMWARE_UPDATE,
+                            USB_FIRMWARE_UPDATE_READY,
+                            0,
+                            sizeof(payload),
+                            payload
+                        );
+
+                    uint8_t transmitStatus = USB_Transmit(
+                        usbCommParameters.USB_tx_parameters.usbTxBuf,
+                        usbCommParameters.USB_tx_parameters.usbTxBufLen
+                    );
+
+            		if(transmitStatus != USBD_OK)
+            		{
+            			(void)USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf,
+		 	 	 	 	 	 	  usbCommParameters.USB_tx_parameters.usbTxBufLen);
+            		}
 
         			memset(&usbCommParameters, 0, sizeof(usbCommParameters));
 
@@ -357,6 +489,12 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
             		uint8_t transmitStatus = USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf,
             					 	 	 	 	 	 	  usbCommParameters.USB_tx_parameters.usbTxBufLen);
 
+            		if(transmitStatus != USBD_OK)
+            		{
+            			(void)USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf,
+		 	 	 	 	 	 	  usbCommParameters.USB_tx_parameters.usbTxBufLen);
+            		}
+
         			memset(&usbCommParameters, 0, sizeof(usbCommParameters));
 
         			ctx->updateState = BL_UPDATE_RECEIVE_DATA;
@@ -390,7 +528,7 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		        	 */
 
         		        	Bootloader_Packet_Parser(&ctx->update_packet,
-        		        							 usbCommParameters.USB_rx_parameters.USB_rx_packet_info.data,
+        		        							 rx,
         		        							 usbCommParameters.USB_rx_parameters.USB_rx_packet_info.data_len);
 
                 			ctx->updateState = BL_UPDATE_VERIFY;
@@ -409,8 +547,9 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         			 * CRC OK Gönder ve devam et
         			 */
 
-        			ctx->update_packet.crcStatus 	= USB_CRC_OK;
-        			ctx->updateState 				= BL_UPDATE_WRITE_FLASH;
+        			ctx->update_packet.requestCounter	= 0;
+        			ctx->update_packet.crcStatus 		= USB_CRC_OK;
+        			ctx->updateState 					= BL_UPDATE_WRITE_FLASH;
         		}
         		else
         		{
@@ -418,10 +557,16 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         			 * CRC NOK Gönder ve paketi tekrar iste
         			 */
 
-        			ctx->update_packet.crcStatus 	= USB_CRC_NOK;
-        			// --> ctx->updateState = BL_UPDATE_ERROR;
-        		}
+        			ctx->update_packet.crcStatus 		= USB_CRC_NOK;
+        			ctx->update_packet.requestCounter	+= 1;
 
+        			if(ctx->update_packet.requestCounter >= 4)
+        			{
+        				// ERROR
+        				ctx->updateState = BL_UPDATE_ERROR;
+        				ctx->state		 = BL_STATE_ERROR;
+        			}
+        		}
 
     			uint8_t usbPacket[1] 	 = {0};
     			uint16_t usbPacketLength = 1;
@@ -429,13 +574,76 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
      			usbPacket[0]   = ctx->update_packet.crcStatus;
 
         		usbCommParameters.USB_tx_parameters = *USB_Prepare_Transmit_Buffer(USB_PACKET_FIRMWARE_UPDATE, USB_FIRMWARE_UPDATE_VERIFY_PACKET, 0, usbPacketLength, usbPacket);
-        		USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf, usbCommParameters.USB_tx_parameters.usbTxBufLen);
+        		uint8_t transmitStatus = USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf, usbCommParameters.USB_tx_parameters.usbTxBufLen);
+
+        		if(transmitStatus != USBD_OK)
+        		{
+        			(void)USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf,
+	 	 	 	 	 	 	  usbCommParameters.USB_tx_parameters.usbTxBufLen);
+        		}
 
     			memset(&usbCommParameters, 0, sizeof(usbCommParameters));
 
         		break;
 
         	case BL_UPDATE_WRITE_FLASH:
+
+        	    bool flash_status	= 0;
+        	    uint8_t retry_cnt = 0U;
+
+        	    uint32_t targetAddress = ctx->update_target_info.g_target_base_addr + ctx->update_packet.packetAddr;
+
+        	    /* -------------------------------------------------
+        	     * Write data to flash (with retry)
+        	     * ------------------------------------------------- */
+        	    while ((flash_status == false) && (retry_cnt < BL_FLASH_WRITE_RETRY_COUNT))
+        	    {
+        	        flash_status = Flash_Write(
+        	        					targetAddress,
+        	                            ctx->update_packet.packetBuff,
+        	                            ctx->update_packet.packetLen
+        	                        );
+
+        	        retry_cnt++;
+        	    }
+
+        	    /* -------------------------------------------------
+        	     * Update flags
+        	     * ------------------------------------------------- */
+        	    ctx->update_requested						= true;
+        	    ctx->update_in_progress						= false;
+
+        	    /* -------------------------------------------------
+        	     * Flash write failed after retries
+        	     * ------------------------------------------------- */
+        	    if (flash_status != true)
+        	    {
+        	        ctx->error = BL_ERR_FLASH_WRITE;
+        	        ctx->state = BL_STATE_ERROR;
+        	        break;
+        	    }
+
+        	    /* -------------------------------------------------
+        	     * Update progress
+        	     * ------------------------------------------------- */
+        	    ctx->update_packet_info.remainingDataLength -= ctx->update_packet.packetLen;
+        	    ctx->update_packet_info.startAddress 		= ctx->update_packet.packetAddr + ctx->update_packet.packetLen;
+
+        	    if(ctx->update_packet_info.remainingDataLength <= 0)
+        	    {
+            	    /* -------------------------------------------------
+            	     * Finish packet
+            	     * ------------------------------------------------- */
+            	    ctx->updateState = BL_UPDATE_FINISH;
+        	    }
+        	    else
+        	    {
+            	    /* -------------------------------------------------
+            	     * Ready for next packet
+            	     * ------------------------------------------------- */
+            	    ctx->updateState = BL_UPDATE_REQUEST_PACKET;
+        	    }
+
 
         		break;
 
@@ -444,6 +652,30 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		break;
 
         	case BL_UPDATE_FINISH:
+
+        		/*
+        		 * Global firmware doğrulama  : Alınan paketlerin tamamını doğrula (full packet crc)
+        		 * Metadata güncelleme		  : Determine metadata side			  ()
+        		 * Update Tamamlanama Bilgisi : Masaüstü tarafına güncelleme sekansının tamamlandığını aktarma
+        		 */
+        		uint32_t calculated_crc	= 0;
+        		uint32_t expected_crc	= 0;
+
+        		expected_crc 			= ctx->update_info.fw_crc32;
+
+        		calculated_crc = CRC32_Calculate(
+												 (uint8_t *)ctx->update_target_info.g_target_base_addr,
+												 ctx->update_info.fw_size_bytes
+												);
+
+        		if (calculated_crc != expected_crc)
+        		{
+        		    ctx->error = BL_ERR_APP_CRC;
+        		    ctx->state = BL_STATE_ERROR;
+        		    return;
+        		}
+
+        		ctx->state = BL_STATE_VERIFY;
 
         		break;
 
@@ -457,15 +689,104 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
         case BL_STATE_VERIFY:
         {
-            if (ctx->update_info.fw_crc32 == ctx->update_info.fw_crc32)
+            meta_record_t meta;
+            bool write_ok;
+
+            /* -------------------------------------------------
+             * 1) Metadata oku
+             * ------------------------------------------------- */
+            if (Meta_Read(&meta) != true)
             {
-                ctx->state = BL_STATE_JUMP;
+                /* Metadata okunamadı → slotlara bakarak oluştur */
+                Meta_Init_FromSlots(&meta);
             }
-            else
+
+            /* -------------------------------------------------
+             * 2) Metadata geçerli mi?  (CRC self-field hariç)
+             * ------------------------------------------------- */
             {
-                ctx->error = BL_ERR_CRC_MISMATCH;
+                meta_record_t tmp = meta;
+                tmp.crc = 0U;
+
+                uint32_t calc_crc = CRC32_Calculate(
+                    ((uint8_t *)&tmp) + sizeof(uint32_t),      /* magic hariç */
+                    sizeof(meta_record_t) - sizeof(uint32_t)   /* crc dahil struct boyutu */
+                );
+
+                if ((meta.magic != META_MAGIC) || (calc_crc != meta.crc))
+                {
+                    /* Bozuk metadata → slotlara bakarak yeniden oluştur */
+                    Meta_Init_FromSlots(&meta);
+                }
+            }
+
+            /* -------------------------------------------------
+             * 3) Target slot kontrolü
+             * ------------------------------------------------- */
+            meta_slot_t new_slot = meta.target_slot;
+
+            if (new_slot == META_SLOT_NONE)
+            {
+                ctx->error = BL_ERR_INVALID_VECTOR;
                 ctx->state = BL_STATE_ERROR;
+                break;
             }
+
+            /* -------------------------------------------------
+             * 4) Metadata güncelle
+             * ------------------------------------------------- */
+            meta.active_slot    = new_slot;
+            meta.target_slot    = (new_slot == META_SLOT_A) ? META_SLOT_B : META_SLOT_A;
+            meta.update_state   = META_UPDATE_IDLE;
+            meta.seq++;
+            meta.progress_bytes = 0U;
+
+            meta_slot_info_t *slot =
+                (new_slot == META_SLOT_A) ? &meta.slotA : &meta.slotB;
+
+            /* -------------------------------------------------
+             * 4.1) Slot firmware bilgilerini YAPIYA UYUMLU yaz
+             * ------------------------------------------------- */
+            slot->fw.size_bytes    = ctx->update_info.fw_size_bytes;
+            slot->fw.crc32         = ctx->update_info.fw_crc32;
+            slot->fw.version_major = ctx->update_info.fw_version.major;
+            slot->fw.version_minor = ctx->update_info.fw_version.minor;
+            slot->fw.version_patch = ctx->update_info.fw_version.patch;
+            slot->valid            = 1U;
+
+            /* -------------------------------------------------
+             * 5) CRC yeniden hesapla (KRİTİK: önce 0'la)
+             * ------------------------------------------------- */
+/*
+            meta.crc = 0U;
+            meta.crc = CRC32_Calculate(
+                ((uint8_t *)&meta) + sizeof(uint32_t),
+                sizeof(meta_record_t) - sizeof(uint32_t)
+            );
+*/
+            /* -------------------------------------------------
+             * 6) Metadata yaz
+             * ------------------------------------------------- */
+            write_ok = Meta_Write(&meta);
+            if (write_ok != true)
+            {
+                ctx->error = BL_ERR_FLASH_WRITE;
+                ctx->state = BL_STATE_ERROR;
+                break;
+            }
+
+            /* -------------------------------------------------
+             * 6.1) Active slota göre app_base ayarla
+             * ------------------------------------------------- */
+            if (meta.active_slot == META_SLOT_B)
+                ctx->app_base = BL_APP_SLOT2_ADDRESS;
+            else
+                ctx->app_base = BL_APP_BASE_ADDRESS;
+
+            /* -------------------------------------------------
+             * 7) Güncelleme tamam → uygulamaya geç
+             * ------------------------------------------------- */
+            ctx->state = BL_STATE_JUMP;
             break;
         }
 
@@ -512,7 +833,7 @@ bool Bootloader_JumpToApplication(BootloaderCtx_t *ctx)
 void Bootloader_Packet_Parser(bl_update_packet_t *ctxPacket, uint8_t *buff, uint16_t len)
 {
     /* Start address */
-    ctxPacket->packetStartAddress =
+    ctxPacket->packetAddr =
         ((uint32_t)buff[0] << 24) |
         ((uint32_t)buff[1] << 16) |
         ((uint32_t)buff[2] << 8)  |

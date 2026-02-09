@@ -1,0 +1,8 @@
+../Core/Bootloader_Drivers/Metadata_Driver/Src/bootloader_metadata.c:25:6:Meta_Init	144	static
+../Core/Bootloader_Drivers/Metadata_Driver/Src/bootloader_metadata.c:98:10:Meta_CalcCrc_NoSelf	80	static
+../Core/Bootloader_Drivers/Metadata_Driver/Src/bootloader_metadata.c:110:6:Meta_IsEmpty	24	static
+../Core/Bootloader_Drivers/Metadata_Driver/Src/bootloader_metadata.c:124:6:Meta_Read	24	static
+../Core/Bootloader_Drivers/Metadata_Driver/Src/bootloader_metadata.c:198:6:Meta_Write	16	static
+../Core/Bootloader_Drivers/Metadata_Driver/Src/bootloader_metadata.c:243:6:Meta_Init_FromSlots	24	static
+../Core/Bootloader_Drivers/Metadata_Driver/Src/bootloader_metadata.c:286:6:Slot_IsValid	32	static
+../Core/Bootloader_Drivers/Metadata_Driver/Src/bootloader_metadata.c:327:10:Meta_SlotToBaseAddr	16	static

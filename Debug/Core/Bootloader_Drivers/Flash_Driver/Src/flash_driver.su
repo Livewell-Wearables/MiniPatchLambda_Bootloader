@@ -1,0 +1,3 @@
+../Core/Bootloader_Drivers/Flash_Driver/Src/flash_driver.c:11:6:Flash_Read	32	static
+../Core/Bootloader_Drivers/Flash_Driver/Src/flash_driver.c:23:6:Flash_Erase	40	static
+../Core/Bootloader_Drivers/Flash_Driver/Src/flash_driver.c:53:6:Flash_Write	56	static

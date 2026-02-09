@@ -11,6 +11,7 @@
 #include "main.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include <bootloader_metadata.h>
 #include "bootloader_eeprom.h"
 #include "bootloader_sram.h"
 #include "crc.h"
@@ -27,6 +28,14 @@ extern RTC_HandleTypeDef hrtc;
 #define BL_APP_SLOT2_ADDRESS     (0x08200000UL)
 #define BL_APP_MAX_SIZE			 1792000
 
+#define SLOT_A_BASE_ADDR     	 0x08040000UL
+#define SLOT_A_END_ADDR      	 0x081FFFFFUL
+
+#define SLOT_B_BASE_ADDR     	 0x08200000UL
+#define SLOT_B_END_ADDR      	 0x083BFFFFUL
+
+#define _FLASH_PAGE_SIZE      	 (8 * 1024UL)   // 8 KB
+
 #define BL_SRAM_BASE             (0x20000000UL)
 #define BL_SRAM_SIZE             (2496UL * 1024UL)
 #define BL_SRAM_END              (BL_SRAM_BASE + BL_SRAM_SIZE)
@@ -34,7 +43,21 @@ extern RTC_HandleTypeDef hrtc;
 /* Boot decision window (ms) */
 #define BL_BOOT_WINDOW_MS        (3000U)
 
-#define BL_PACKET_SIZE			 (1036)
+#define BL_PACKET_SIZE			 (1036U)
+
+#define BL_FLASH_WRITE_RETRY_COUNT (3U)
+
+#define USB_MSG_BL_SLOT_NONE   	(0x00)
+#define USB_MSG_BL_SLOT_A     	(0x01)
+#define USB_MSG_BL_SLOT_B      	(0x02)
+
+
+typedef enum
+{
+    BL_SLOT_A = 0,
+    BL_SLOT_B
+} bl_slot_t;
+
 
 typedef enum
 {
@@ -51,6 +74,8 @@ typedef enum
     BL_STATE_INIT,
     BL_STATE_CHECK_UPDATE,
     BL_STATE_WAIT,
+	BL_STATE_SELECT_TARGET,
+	BL_STATE_ERASE_TARGET,
     BL_STATE_UPDATE_MODE,
     BL_STATE_VERIFY,
     BL_STATE_JUMP,
@@ -80,6 +105,7 @@ typedef enum
     BL_ERR_INVALID_VECTOR,
     BL_ERR_CRC_MISMATCH,
     BL_ERR_FLASH_WRITE,
+	BL_ERR_APP_CRC,
     BL_ERR_TIMEOUT,
     BL_ERR_UNKNOWN
 } bl_error_t;
@@ -119,12 +145,20 @@ typedef struct
 typedef struct
 {
 	uint8_t 			packetBuff[BL_PACKET_SIZE];
-	uint32_t			packetStartAddress;
+	uint32_t			packetAddr;
 	uint16_t			packetLen;
 	uint32_t			packetCRC;
 
 	crc_status_t		crcStatus;
+	uint8_t				requestCounter;
 }bl_update_packet_t;
+
+typedef struct
+{
+	bl_slot_t g_target_slot;
+	uint32_t  g_target_base_addr;
+	uint32_t  g_target_end_addr;
+}bl_target_info_t;
 
 typedef struct
 {
@@ -132,6 +166,7 @@ typedef struct
     bl_state_t   					state;
     bl_update_state_t				updateState;
     bl_error_t   					error;
+    meta_record_t 					meta;
 
     uint32_t     					tick_start;
     uint32_t     					boot_elapsed_ms;
@@ -148,6 +183,7 @@ typedef struct
     bl_update_info_t 				update_info;
     bl_update_request_packet_info_t	update_packet_info;
     bl_update_packet_t				update_packet;
+    bl_target_info_t				update_target_info;
 
     /* --- Debug / diagnostics --- */
     uint32_t     					last_event;

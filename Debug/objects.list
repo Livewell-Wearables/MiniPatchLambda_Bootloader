@@ -3,6 +3,8 @@
 "./Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_eeprom.o"
 "./Core/Bootloader_Drivers/Boot_Driver/Src/bootloader_sram.o"
 "./Core/Bootloader_Drivers/CRC/Src/crc.o"
+"./Core/Bootloader_Drivers/Flash_Driver/Src/flash_driver.o"
+"./Core/Bootloader_Drivers/Metadata_Driver/Src/bootloader_metadata.o"
 "./Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_General/Src/USB_General.o"
 "./Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_Receive/Src/USB_Receive.o"
 "./Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_Transmit/Src/USB_Transmit.o"
