@@ -112,6 +112,16 @@ int main(void)
 	  MX_USB_DEVICE_Init();
   }
 
+  LED_Red_Init	(&htim3, TIM_CHANNEL_1, 	&bootloaderCTX.ledState.ledRedInfo);
+  LED_Green_Init(&htim3, TIM_CHANNEL_2, 	&bootloaderCTX.ledState.ledGreenInfo);
+  LED_Blue_Init	(&htim3, TIM_CHANNEL_3, 	&bootloaderCTX.ledState.ledBlueInfo);
+  LEDs_Initialization(&bootloaderCTX.ledState);
+
+  bootloaderCTX.ledState.ledRedInfo.redValue	 	= 0x00;
+  bootloaderCTX.ledState.ledGreenInfo.greenValue	= 0x00;
+  bootloaderCTX.ledState.ledBlueInfo.blueValue		= 0xFF;
+  RGB_Set_Color(&bootloaderCTX.ledState);
+
   Bootloader_Init(&bootloaderCTX);
   /* USER CODE END 2 */
 

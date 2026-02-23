@@ -27,6 +27,7 @@ Core/Bootloader_Drivers/Boot_Driver/Src \
 Core/Bootloader_Drivers/CRC/Src \
 Core/Bootloader_Drivers/Flash_Driver/Src \
 Core/Bootloader_Drivers/Metadata_Driver/Src \
+Core/Bootloader_Drivers/RGB_Led_Driver/Src \
 Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_General/Src \
 Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_Receive/Src \
 Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_Transmit/Src \

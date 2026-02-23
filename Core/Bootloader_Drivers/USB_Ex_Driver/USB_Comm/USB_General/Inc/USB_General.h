@@ -128,6 +128,7 @@ typedef enum
 	USB_FIRMWARE_UPDATE_GET_PACKET		= 0x13, 	// MCU - - - > PC
 	USB_FIRMWARE_UPDATE_SEND_PACKET		= 0x14,     // PC  - - - > MCU
 	USB_FIRMWARE_UPDATE_VERIFY_PACKET	= 0x15,     // MCU - - - > PC
+	USB_FIRMWARE_FLASH_ERASE			= 0x16,		// PC  - - - > MCU
 }USBFirmwareUpdateCommandID_t;
 
 typedef enum

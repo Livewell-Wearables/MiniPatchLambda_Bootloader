@@ -17,6 +17,7 @@
 #include "crc.h"
 #include "USB_Receive.h"
 #include "USB_Transmit.h"
+#include "rgb_led_driver.h"
 
 extern RTC_HandleTypeDef hrtc;
 
@@ -188,6 +189,8 @@ typedef struct
     /* --- Debug / diagnostics --- */
     uint32_t     					last_event;
     uint32_t     					reset_reason;
+
+	Leds_State_t				ledState;							/**< Handle structure for RGB Led Module */
 } BootloaderCtx_t;
 
 /* =========================================================

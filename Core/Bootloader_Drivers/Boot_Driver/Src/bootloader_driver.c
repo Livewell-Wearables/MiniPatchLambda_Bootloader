@@ -183,8 +183,6 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
         	if(ctx->meta.active_slot == META_SLOT_NONE || ctx->meta.target_slot  == META_SLOT_NONE)
         	{
-        		// Sıkıntı :D
-
         		/*
         		 * TODO: Belki tüm flash temizlenip hedef slot A olarak belirlenebilir.
         		 */
@@ -423,6 +421,121 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		            /* Paket eksik / hatalı */
         		            ctx->updateState = BL_UPDATE_ERROR;
         		        }
+        		    }
+        		    else if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type ==
+        		                USB_PACKET_FIRMWARE_UPDATE &&
+        		             usbCommParameters.USB_rx_parameters.USB_rx_packet_info.command
+        		                .USB_firmware_update_command_id == USB_FIRMWARE_FLASH_ERASE)
+        		    {
+        		        FLASH_EraseInitTypeDef erase_cfg;
+        		        uint32_t page_error = 0;
+
+        		        /* -------------------------------------------------
+        		         * SLOT A ERASE
+        		         * ------------------------------------------------- */
+        		        {
+        		            const uint32_t base_addr = SLOT_A_BASE_ADDR;
+        		            const uint32_t end_addr  = SLOT_A_END_ADDR;
+
+        		            const uint32_t start_page = (base_addr - FLASH_BASE) / _FLASH_PAGE_SIZE;
+        		            const uint32_t end_page   = (end_addr  - FLASH_BASE) / _FLASH_PAGE_SIZE;
+
+        		            erase_cfg.TypeErase = FLASH_TYPEERASE_PAGES;
+
+        		            /* Slot A için bank seçimi: */
+        		            erase_cfg.Banks   = FLASH_BANK_1;
+        		            erase_cfg.Page    = start_page;
+        		            erase_cfg.NbPages = (end_page - start_page) + 1U;
+
+        		            HAL_FLASH_Unlock();
+
+        		            if (HAL_FLASHEx_Erase(&erase_cfg, &page_error) != HAL_OK)
+        		            {
+        		                HAL_FLASH_Lock();
+        		                ctx->error = BL_ERR_FLASH_WRITE;
+        		                //ctx->state = BL_STATE_ERROR;
+        		                return;
+        		            }
+
+        		            HAL_FLASH_Lock();
+        		        }
+
+        		        /* -------------------------------------------------
+        		         * SLOT B ERASE
+        		         * ------------------------------------------------- */
+        		        {
+        		            const uint32_t base_addr = SLOT_B_BASE_ADDR;
+        		            const uint32_t end_addr  = SLOT_B_END_ADDR;
+
+        		            const uint32_t start_page = (base_addr - FLASH_BASE) / _FLASH_PAGE_SIZE;
+        		            const uint32_t end_page   = (end_addr  - FLASH_BASE) / _FLASH_PAGE_SIZE;
+
+        		            erase_cfg.TypeErase = FLASH_TYPEERASE_PAGES;
+
+        		            /* Slot B için bank seçimi: */
+        		            erase_cfg.Banks   = FLASH_BANK_1;
+        		            erase_cfg.Page    = start_page;
+        		            erase_cfg.NbPages = (end_page - start_page) + 1U;
+
+        		            HAL_FLASH_Unlock();
+
+        		            if (HAL_FLASHEx_Erase(&erase_cfg, &page_error) != HAL_OK)
+        		            {
+        		                HAL_FLASH_Lock();
+        		                ctx->error = BL_ERR_FLASH_WRITE;
+        		                //ctx->state = BL_STATE_ERROR;
+        		                return;
+        		            }
+
+        		            HAL_FLASH_Lock();
+        		        }
+
+        		        /* -------------------------------------------------
+        		         * 2) Metadata temizle + güncelle (iki slot da boş)
+        		         *    - Meta flash alanını erase et
+        		         *    - Tutarlı bir meta record yaz (CRC dahil)
+        		         * ------------------------------------------------- */
+        		        {
+        		            meta_record_t m;
+        		            memset(&m, 0, sizeof(m));
+
+        		            /* "Temiz + boş" meta kaydı oluştur */
+        		            m.magic        = META_MAGIC;
+        		            m.seq          = (ctx->meta.seq == 0xFFFFFFFFu || ctx->meta.seq == 0u) ? 1u : (ctx->meta.seq + 1u);
+
+        		            /* Her iki slot boş: valid=0 */
+        		            m.slotA.valid  = 0u;
+        		            m.slotB.valid  = 0u;
+        		            m.progress_bytes = 0u;
+
+        		            /* Sanity check’lerden geçsin diye A/B set ediyoruz,
+        		               ama state NO_APP ile “geçerli app yok” bilgisini veriyoruz. */
+        		            m.active_slot  = META_SLOT_A;
+        		            m.target_slot  = META_SLOT_B;
+        		            m.update_state = META_UPDATE_NO_APP;
+
+        		            /* Meta_Write zaten erase + crc + write yapıyor.
+        		               Ama önce meta flash’ı tamamen temizlemek istedin, o yüzden ayrıca erase de atıyoruz. */
+        		            (void)Flash_Erase(META_FLASH_ADDR);
+
+        		            if (Meta_Write(&m) != true)
+        		            {
+        		                ctx->error = BL_ERR_FLASH_WRITE;
+        		                ctx->state = BL_STATE_ERROR;
+        		                return;
+        		            }
+
+        		            /* RAM'deki meta’yı da senkronla */
+        		            ctx->meta = m;
+        		        }
+
+        		        /* -------------------------------------------------
+        		         * 3) Hedef slotu SLOT A olarak işaretle
+        		         * ------------------------------------------------- */
+        		        ctx->update_target_info.g_target_slot      = BL_SLOT_A;
+        		        ctx->update_target_info.g_target_base_addr = SLOT_A_BASE_ADDR;
+        		        ctx->update_target_info.g_target_end_addr  = SLOT_A_END_ADDR;
+
         		    }
         		}
 

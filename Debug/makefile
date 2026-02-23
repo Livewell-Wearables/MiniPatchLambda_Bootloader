@@ -19,6 +19,7 @@ RM := rm -rf
 -include Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_Transmit/Src/subdir.mk
 -include Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_Receive/Src/subdir.mk
 -include Core/Bootloader_Drivers/USB_Ex_Driver/USB_Comm/USB_General/Src/subdir.mk
+-include Core/Bootloader_Drivers/RGB_Led_Driver/Src/subdir.mk
 -include Core/Bootloader_Drivers/Metadata_Driver/Src/subdir.mk
 -include Core/Bootloader_Drivers/Flash_Driver/Src/subdir.mk
 -include Core/Bootloader_Drivers/CRC/Src/subdir.mk
