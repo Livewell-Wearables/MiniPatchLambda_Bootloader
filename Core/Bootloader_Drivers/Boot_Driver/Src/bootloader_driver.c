@@ -134,6 +134,39 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
     System_USB_Communication_Receive_Function(&usbCommParameters);
 
+    {
+    	/*
+    	 * USB COMMAND MESSAGE DIRECTION
+    	 */
+    	if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_FIRMWARE_UPDATE &&
+    			usbCommParameters.USB_rx_parameters.USB_rx_packet_info.command.USB_firmware_update_command_id == USB_FIRMWARE_CMD_EXIT_BOOTLOADER)
+    	{
+    		// Bootloader dan çıkar...
+    	}
+
+    	if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_FIRMWARE_UPDATE &&
+    			usbCommParameters.USB_rx_parameters.USB_rx_packet_info.command.USB_firmware_update_command_id == USB_FIRMWARE_CMD_SHUTDOWN_DEVICE)
+    	{
+    		// Cihazı kapatır...
+    		HAL_GPIO_WritePin(SYSTEM_SHUTDOWN_GPIO_Port, SYSTEM_SHUTDOWN_Pin, GPIO_PIN_RESET);
+    	}
+
+    	if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_FIRMWARE_UPDATE &&
+    			usbCommParameters.USB_rx_parameters.USB_rx_packet_info.command.USB_firmware_update_command_id == USB_FIRMWARE_CMD_GO_APPLICATION)
+    	{
+    		// VARSA Application koduna atlar...
+    		ctx->state = BL_STATE_JUMP;
+    	}
+
+    	if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_FIRMWARE_UPDATE &&
+    			usbCommParameters.USB_rx_parameters.USB_rx_packet_info.command.USB_firmware_update_command_id == USB_FIRMWARE_CMD_RESET_DEVICE)
+    	{
+    		// Cihaza reset atar...
+    		HAL_NVIC_SystemReset();
+    	}
+
+    }
+
     switch (ctx->state)
     {
         case BL_STATE_CHECK_UPDATE:
@@ -905,6 +938,29 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
         case BL_STATE_JUMP:
         {
+            usbCommParameters.USB_tx_parameters =
+                *USB_Prepare_Transmit_Buffer(
+                    USB_PACKET_FIRMWARE_UPDATE,
+					USB_FIRMWARE_JUMPING_APPLICATION,
+                    0,
+                    0,
+                    NULL
+                );
+
+            uint8_t transmitStatus = USB_Transmit(
+                usbCommParameters.USB_tx_parameters.usbTxBuf,
+                usbCommParameters.USB_tx_parameters.usbTxBufLen
+            );
+
+    		if(transmitStatus != USBD_OK)
+    		{
+    			(void)USB_Transmit(usbCommParameters.USB_tx_parameters.usbTxBuf,
+ 	 	 	 	 	 	  usbCommParameters.USB_tx_parameters.usbTxBufLen);
+    		}
+
+			memset(&usbCommParameters, 0, sizeof(usbCommParameters));
+
+
             (void)Bootloader_JumpToApplication(ctx);
             ctx->state = BL_STATE_ERROR;
             break;
