@@ -22,7 +22,7 @@ USBCommParameters_t usbCommParameters;
  * External Variables
  * ========================================================= */
 extern S_AT24C32_t at24c32;
-
+extern IWDG_HandleTypeDef hiwdg;
 
 /* =========================================================
  * Local Type Definitions
@@ -179,6 +179,8 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 		else
 			ctx->state = BL_STATE_SHUTDOWN;
 	}
+
+	HAL_IWDG_Refresh(&hiwdg);
 
     switch (ctx->state)
     {
