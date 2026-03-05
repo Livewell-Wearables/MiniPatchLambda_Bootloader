@@ -990,6 +990,8 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
         case BL_STATE_JUMP:
         {
+        	HAL_Delay(1000);
+
             (void)Bootloader_JumpToApplication(ctx);
             ctx->state = BL_STATE_ERROR;
             break;
