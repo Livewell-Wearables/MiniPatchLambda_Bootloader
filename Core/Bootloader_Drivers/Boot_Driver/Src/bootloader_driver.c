@@ -446,6 +446,8 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		            info->fw_version.minor = rx[10];
         		            info->fw_version.patch = rx[9];
 
+        		            ctx->update_info.fw_version = info->fw_version;
+
         		            /* State ilerlet */
         		            ctx->updateState = BL_UPDATE_CHECK_INFO;
         		        }
@@ -929,15 +931,17 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
             else
                 ctx->app_base = BL_APP_BASE_ADDRESS;
 
-            /* -------------------------------------------------
-             * 7) Güncelleme tamam → uygulamaya geç
-             * ------------------------------------------------- */
-            ctx->state = BL_STATE_JUMP;
-            break;
-        }
+            uint8_t data[3] = {0};
 
-        case BL_STATE_JUMP:
-        {
+            data[0] = ctx->update_info.fw_version.major;
+            data[1] = ctx->update_info.fw_version.minor;
+            data[2] = ctx->update_info.fw_version.patch;
+
+            AT24C32_WriteData(&at24c32,
+                              0x0000,
+							  data,
+							  3);
+
             usbCommParameters.USB_tx_parameters =
                 *USB_Prepare_Transmit_Buffer(
                     USB_PACKET_FIRMWARE_UPDATE,
@@ -960,7 +964,15 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
 			memset(&usbCommParameters, 0, sizeof(usbCommParameters));
 
+            /* -------------------------------------------------
+             * 7) Güncelleme tamam → uygulamaya geç
+             * ------------------------------------------------- */
+            ctx->state = BL_STATE_JUMP;
+            break;
+        }
 
+        case BL_STATE_JUMP:
+        {
             (void)Bootloader_JumpToApplication(ctx);
             ctx->state = BL_STATE_ERROR;
             break;
