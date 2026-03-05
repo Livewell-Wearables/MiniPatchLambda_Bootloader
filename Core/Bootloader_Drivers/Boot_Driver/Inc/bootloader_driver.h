@@ -80,6 +80,7 @@ typedef enum
     BL_STATE_UPDATE_MODE,
     BL_STATE_VERIFY,
     BL_STATE_JUMP,
+	BL_STATE_SHUTDOWN,
     BL_STATE_ERROR
 } bl_state_t;
 

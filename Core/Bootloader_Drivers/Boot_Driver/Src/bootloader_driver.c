@@ -115,6 +115,8 @@ void Bootloader_Init(BootloaderCtx_t *ctx)
     ctx->state              			= BL_STATE_CHECK_UPDATE;
 }
 
+uint32_t requestedTime;
+
 /**
  * @brief Bootloader main state machine task
  *
@@ -147,8 +149,7 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
     	if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_FIRMWARE_UPDATE &&
     			usbCommParameters.USB_rx_parameters.USB_rx_packet_info.command.USB_firmware_update_command_id == USB_FIRMWARE_CMD_SHUTDOWN_DEVICE)
     	{
-    		// Cihazı kapatır...
-    		HAL_GPIO_WritePin(SYSTEM_SHUTDOWN_GPIO_Port, SYSTEM_SHUTDOWN_Pin, GPIO_PIN_RESET);
+    		ctx->state = BL_STATE_SHUTDOWN;
     	}
 
     	if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_FIRMWARE_UPDATE &&
@@ -166,6 +167,15 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
     	}
 
     }
+
+	if(abs(ctx->boot_elapsed_ms - updateInfoTime) >= 30000)
+	{
+		// TODO: Go to shutdown or application
+		if(ctx->meta.active_slot != META_SLOT_NONE)
+			ctx->state = BL_STATE_JUMP;
+		else
+			ctx->state = BL_STATE_SHUTDOWN;
+	}
 
     switch (ctx->state)
     {
@@ -314,6 +324,7 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		 * 30 sn içerisinde PC tarafından komut gelmezse sistemi kapat yada applicationa geç
         		 */
 
+
         		if(usbCommParameters.USB_rx_parameters.usbRxFlag)
         		{
     				usbCommParameters.USB_rx_parameters.usbRxFlag = 0;
@@ -327,11 +338,6 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         			}
 
         			memset(&usbCommParameters, 0, sizeof(usbCommParameters));
-        		}
-
-        		if(abs(ctx->boot_elapsed_ms - updateInfoTime) >= 30000)
-        		{
-        			// TODO: Go to shutdown or application
         		}
 
         		break;
@@ -407,6 +413,7 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		if (usbCommParameters.USB_rx_parameters.usbRxFlag)
         		{
         		    usbCommParameters.USB_rx_parameters.usbRxFlag = 0;
+            		updateInfoTime = HAL_GetTick();
 
         		    if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type ==
         		            USB_PACKET_FIRMWARE_UPDATE &&
@@ -578,6 +585,7 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
         	case BL_UPDATE_CHECK_INFO:
 
+        		updateInfoTime = HAL_GetTick();
         		g_usb_rx_debug.rx_callback_count 	= 0;
         		g_usb_rx_debug.frame_completed 		= 0;
         	    g_usb_rx_debug.total_received_bytes = 0;
@@ -598,6 +606,9 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		break;
 
         	case BL_UPDATE_REQUEST_PACKET:
+
+        		updateInfoTime = HAL_GetTick();
+        		requestedTime = ctx->boot_elapsed_ms;
 
         		if(ctx->update_requested && ctx->update_in_progress == false)
         		{
@@ -654,6 +665,7 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
         		if (usbCommParameters.USB_rx_parameters.usbRxFlag)
         		{
+            		updateInfoTime = HAL_GetTick();
         		    usbCommParameters.USB_rx_parameters.usbRxFlag = 0;
 
         		    if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type ==
@@ -976,6 +988,12 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
             (void)Bootloader_JumpToApplication(ctx);
             ctx->state = BL_STATE_ERROR;
             break;
+        }
+
+        case BL_STATE_SHUTDOWN:
+        {
+    		// Cihazı kapatır...
+    		HAL_GPIO_WritePin(SYSTEM_SHUTDOWN_GPIO_Port, SYSTEM_SHUTDOWN_Pin, GPIO_PIN_RESET);
         }
 
         case BL_STATE_ERROR:
