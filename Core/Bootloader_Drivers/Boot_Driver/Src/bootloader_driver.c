@@ -155,8 +155,11 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
     	if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_FIRMWARE_UPDATE &&
     			usbCommParameters.USB_rx_parameters.USB_rx_packet_info.command.USB_firmware_update_command_id == USB_FIRMWARE_CMD_GO_APPLICATION)
     	{
-    		// VARSA Application koduna atlar...
-    		ctx->state = BL_STATE_JUMP;
+    		// VARSA Application koduna atlar yoksa cihaz kapanır...
+    		if(ctx->meta.active_slot != META_SLOT_NONE)
+    			ctx->state = BL_STATE_JUMP;
+    		else
+    			ctx->state = BL_STATE_SHUTDOWN;
     	}
 
     	if (usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_FIRMWARE_UPDATE &&
