@@ -121,9 +121,9 @@ int main(void)
   LED_Blue_Init	(&htim3, TIM_CHANNEL_3, 	&bootloaderCTX.ledState.ledBlueInfo);
   LEDs_Initialization(&bootloaderCTX.ledState);
 
-  bootloaderCTX.ledState.ledRedInfo.redValue	 	= 0x00;
+  bootloaderCTX.ledState.ledRedInfo.redValue	 	= 0x60;
   bootloaderCTX.ledState.ledGreenInfo.greenValue	= 0x00;
-  bootloaderCTX.ledState.ledBlueInfo.blueValue		= 0xFF;
+  bootloaderCTX.ledState.ledBlueInfo.blueValue		= 0x60;
   RGB_Set_Color(&bootloaderCTX.ledState);
 
   Bootloader_Init(&bootloaderCTX);

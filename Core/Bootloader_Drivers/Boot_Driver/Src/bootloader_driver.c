@@ -668,6 +668,11 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
 
         	case BL_UPDATE_RECEIVE_DATA:
 
+           		ctx->ledState.ledRedInfo.redValue	 	= 0x60;
+           		ctx->ledState.ledGreenInfo.greenValue	= 0x00;
+           		ctx->ledState.ledBlueInfo.blueValue		= 0x60;
+           		RGB_Set_Color(&ctx->ledState);
+
         		if (usbCommParameters.USB_rx_parameters.usbRxFlag)
         		{
             		updateInfoTime = HAL_GetTick();
@@ -752,6 +757,12 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		break;
 
         	case BL_UPDATE_WRITE_FLASH:
+
+
+        		ctx->ledState.ledRedInfo.redValue	 	= 0xff;
+        		ctx->ledState.ledGreenInfo.greenValue	= 0xff;
+        		ctx->ledState.ledBlueInfo.blueValue		= 0xFF;
+        		RGB_Set_Color(&ctx->ledState);
 
         	    bool flash_status	= 0;
         	    uint8_t retry_cnt = 0U;
@@ -839,6 +850,11 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
         		    ctx->state = BL_STATE_ERROR;
         		    return;
         		}
+
+        		ctx->ledState.ledRedInfo.redValue	 	= 0x60;
+        		ctx->ledState.ledGreenInfo.greenValue	= 0x00;
+        		ctx->ledState.ledBlueInfo.blueValue		= 0x60;
+        		RGB_Set_Color(&ctx->ledState);
 
         		ctx->state = BL_STATE_VERIFY;
 

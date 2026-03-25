@@ -3,6 +3,12 @@
 ../Core/Src/main.c:213:13:MX_I2C1_Init	4
 ../Core/Src/main.c:261:13:MX_IWDG_Init	2
 ../Core/Src/main.c:291:13:MX_RTC_Init	3
+<<<<<<< Updated upstream
 ../Core/Src/main.c:348:13:MX_TIM3_Init	6
 ../Core/Src/main.c:405:13:MX_GPIO_Init	1
 ../Core/Src/main.c:475:6:Error_Handler	1
+=======
+../Core/Src/main.c:349:13:MX_TIM3_Init	6
+../Core/Src/main.c:406:13:MX_GPIO_Init	1
+../Core/Src/main.c:476:6:Error_Handler	1
+>>>>>>> Stashed changes
