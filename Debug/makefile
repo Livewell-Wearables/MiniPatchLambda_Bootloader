@@ -65,6 +65,12 @@ default.size.stdout \
 OBJDUMP_LIST += \
 MiniPatchLambda_Bootloader.list \
 
+OBJCOPY_HEX += \
+MiniPatchLambda_Bootloader.hex \
+
+OBJCOPY_BIN += \
+MiniPatchLambda_Bootloader.bin \
+
 
 # All Target
 all: main-build
@@ -73,8 +79,8 @@ all: main-build
 main-build: MiniPatchLambda_Bootloader.elf secondary-outputs
 
 # Tool invocations
-MiniPatchLambda_Bootloader.elf MiniPatchLambda_Bootloader.map: $(OBJS) $(USER_OBJS) C:\Users\Fatih\STM32CubeIDE\LW_MiniPatch_Lambda\MiniPatchLambda_Bootloader\STM32U5A5VJTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "MiniPatchLambda_Bootloader.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\Fatih\STM32CubeIDE\LW_MiniPatch_Lambda\MiniPatchLambda_Bootloader\STM32U5A5VJTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MiniPatchLambda_Bootloader.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+MiniPatchLambda_Bootloader.elf MiniPatchLambda_Bootloader.map: $(OBJS) $(USER_OBJS) C:\Users\inanc\Desktop\Projeler\MiniPatchLambda_Bootloader\STM32U5A5VJTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "MiniPatchLambda_Bootloader.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\inanc\Desktop\Projeler\MiniPatchLambda_Bootloader\STM32U5A5VJTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MiniPatchLambda_Bootloader.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -88,12 +94,22 @@ MiniPatchLambda_Bootloader.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL
 	@echo 'Finished building: $@'
 	@echo ' '
 
+MiniPatchLambda_Bootloader.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "MiniPatchLambda_Bootloader.hex"
+	@echo 'Finished building: $@'
+	@echo ' '
+
+MiniPatchLambda_Bootloader.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "MiniPatchLambda_Bootloader.bin"
+	@echo 'Finished building: $@'
+	@echo ' '
+
 # Other Targets
 clean:
-	-$(RM) MiniPatchLambda_Bootloader.elf MiniPatchLambda_Bootloader.list MiniPatchLambda_Bootloader.map default.size.stdout
+	-$(RM) MiniPatchLambda_Bootloader.bin MiniPatchLambda_Bootloader.elf MiniPatchLambda_Bootloader.hex MiniPatchLambda_Bootloader.list MiniPatchLambda_Bootloader.map default.size.stdout
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_HEX) $(OBJCOPY_BIN)
 
 fail-specified-linker-script-missing:
 	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'

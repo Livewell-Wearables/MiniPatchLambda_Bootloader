@@ -1,6 +1,6 @@
 Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.o: \
  ../Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.c \
- C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_driver.h \
+ C:/Users/inanc/Desktop/Projeler/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_driver.h \
  ../Core/Inc/main.h ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal.h \
  ../Core/Inc/stm32u5xx_hal_conf.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_rcc.h \
@@ -35,8 +35,8 @@ Core/Bootloader_Drivers/AT24C32_Driver/Src/at24c32_driver.o: \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pcd_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h \
- C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_address.h
-C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_driver.h:
+ C:/Users/inanc/Desktop/Projeler/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_address.h
+C:/Users/inanc/Desktop/Projeler/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_driver.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal.h:
 ../Core/Inc/stm32u5xx_hal_conf.h:
@@ -72,4 +72,4 @@ C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pcd_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h:
-C:/Users/Fatih/STM32CubeIDE/LW_MiniPatch_Lambda/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_address.h:
+C:/Users/inanc/Desktop/Projeler/MiniPatchLambda_Bootloader/Core/Bootloader_Drivers/AT24C32_Driver/Inc/at24c32_address.h:
