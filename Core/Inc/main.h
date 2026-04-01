@@ -47,6 +47,28 @@ extern "C" {
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
+/* 
+ * Bootloader Version Definition
+ *
+ * Bu değerler bootloader versiyon bilgisini temsil eder.
+ * Versiyon formatı: MAJOR.MINOR.BUILD şeklindedir.
+ *
+ * - MAJOR: Büyük değişiklikler (breaking changes, mimari değişiklikler)
+ * - MINOR: Geriye uyumlu yeni özellikler
+ * - BUILD: Küçük iyileştirmeler, bug fixler
+ *
+ * Not:
+ * - EEPROM'a yazılan varsayılan versiyon bu değerlerden alınır.
+ * - Versiyon güncellemesi gerektiğinde sadece buradaki define'lar değiştirilmelidir.
+ */
+#define BOOTLOADER_VERSION_MAJOR              1
+#define BOOTLOADER_VERSION_MINOR              0
+#define BOOTLOADER_VERSION_BUILD              1
+
+
+
+#define AT24C32_BOOTLOADER_VERSION_ADDRESS    0x0037
+#define AT24C32_BOOTLOADER_VERSION_SIZE       3
 /* USER CODE END EM */
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);

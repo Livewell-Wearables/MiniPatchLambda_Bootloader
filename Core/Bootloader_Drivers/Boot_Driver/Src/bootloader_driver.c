@@ -113,6 +113,83 @@ void Bootloader_Init(BootloaderCtx_t *ctx)
     ctx->reset_reason       			= RCC->CSR;
 
     ctx->state              			= BL_STATE_CHECK_UPDATE;
+
+
+    HAL_StatusTypeDef bt_epprom_status = HAL_ERROR;
+    uint8_t bootloader_version_data [AT24C32_BOOTLOADER_VERSION_SIZE] = {0};
+	uint8_t current_version[AT24C32_BOOTLOADER_VERSION_SIZE] = {BOOTLOADER_VERSION_MAJOR,
+    							  								BOOTLOADER_VERSION_MINOR,
+    							  								BOOTLOADER_VERSION_BUILD};
+
+	if(AT24C32_ReadData(&at24c32, 
+						AT24C32_BOOTLOADER_VERSION_ADDRESS, 
+						bootloader_version_data,
+						AT24C32_BOOTLOADER_VERSION_SIZE) != HAL_OK)
+	{
+		for (uint8_t i = 0; i < 2; i++)
+		{
+			bt_epprom_status = AT24C32_ReadData(&at24c32,
+												AT24C32_BOOTLOADER_VERSION_ADDRESS,
+												bootloader_version_data,
+												AT24C32_BOOTLOADER_VERSION_SIZE);
+			if (bt_epprom_status == HAL_OK)
+			{
+				break;
+			}
+
+			HAL_Delay(5);
+		}
+	}
+
+	/* Hala okuyamadıysan çık */
+	if (bt_epprom_status != HAL_OK)
+	{
+    	return;
+	}
+	
+	if((bootloader_version_data[0] == 0xFF &&
+	   bootloader_version_data[1] == 0xFF &&
+	   bootloader_version_data[2] == 0xFF) || (memcmp(bootloader_version_data, current_version, 3) != 0))
+	{
+		bootloader_version_data[0] = BOOTLOADER_VERSION_MAJOR;
+		bootloader_version_data[1] = BOOTLOADER_VERSION_MINOR;
+		bootloader_version_data[2] = BOOTLOADER_VERSION_BUILD;
+		
+		if(AT24C32_WriteData(&at24c32,
+                		  	  AT24C32_BOOTLOADER_VERSION_ADDRESS,
+							  bootloader_version_data,
+							  AT24C32_BOOTLOADER_VERSION_SIZE) != HAL_OK)
+		{
+			for (uint8_t i = 0; i < 2; i++)
+			{
+				bt_epprom_status = AT24C32_WriteData(&at24c32,
+			                               			AT24C32_BOOTLOADER_VERSION_ADDRESS,
+			                               			bootloader_version_data,
+	 		                               			AT24C32_BOOTLOADER_VERSION_SIZE);
+                          
+			    if (bt_epprom_status == HAL_OK)
+			    {
+			        break;
+			    }
+                     
+			    HAL_Delay(5);
+			}
+                   
+			if (bt_epprom_status != HAL_OK)
+			{
+			    return;
+			}
+			else
+			{
+			    // basarılı
+			}
+		}
+		else
+		{
+        	// basarılı
+		}
+	} 
+
 }
 
 uint32_t requestedTime;
@@ -169,6 +246,51 @@ void Bootloader_Task(BootloaderCtx_t *ctx)
     		HAL_NVIC_SystemReset();
     	}
 
+		if(usbCommParameters.USB_rx_parameters.USB_rx_packet_info.packet_type == USB_PACKET_FIRMWARE_UPDATE && 
+				usbCommParameters.USB_rx_parameters.USB_rx_packet_info.command.USB_firmware_update_command_id == USB_FIRMWARE_BOOTLOADER_VERSION)
+		{
+			USBTxPacketStatusCode_t bt_status_code;
+			uint8_t *trasmit_data;
+    		uint16_t transmit_data_len;
+
+			if(usbCommParameters.USB_rx_parameters.USB_rx_packet_info.process_type == USB_PACKET_PROCESS_TYPE_READ)
+			{
+				uint8_t bootloader_version[3] = {0};
+				if(AT24C32_ReadData(&at24c32, 
+									0x0037, 
+									bootloader_version,
+									3) != HAL_OK)
+				{
+		
+					bt_status_code.status_code = FAILED;
+					trasmit_data = NULL;
+					transmit_data_len = 0;            
+				}
+				else
+				{
+					bt_status_code.status_code = SUCCESSFULL;
+					trasmit_data = bootloader_version;
+					transmit_data_len = 3;            
+				} 
+
+				usbCommParameters.USB_tx_parameters =
+                *USB_Prepare_Transmit_Buffer(
+                    USB_PACKET_FIRMWARE_UPDATE,
+					USB_FIRMWARE_BOOTLOADER_VERSION,
+                    bt_status_code.status_code,
+                    transmit_data_len,
+                    trasmit_data);
+
+            	uint8_t transmitStatus = USB_Transmit(
+                	usbCommParameters.USB_tx_parameters.usbTxBuf,
+                	usbCommParameters.USB_tx_parameters.usbTxBufLen);
+
+			}
+			else
+			{
+
+			}
+		}
     }
 
 	if(abs(ctx->boot_elapsed_ms - updateInfoTime) >= 30000)

@@ -232,6 +232,7 @@ void USB_Rx_Command_ID_Control_Function(void)
 				case USB_FIRMWARE_CMD_SHUTDOWN_DEVICE:
 				case USB_FIRMWARE_CMD_GO_APPLICATION:
 				case USB_FIRMWARE_CMD_RESET_DEVICE:
+				case USB_FIRMWARE_BOOTLOADER_VERSION:
 
 	            	USB_Comm_Parameters.USB_rx_parameters.USB_rx_packet_info.command.USB_firmware_update_command_id = USB_Comm_Parameters.USB_rx_parameters.usbRxBuf[USB_INDEX_4_COMMAND_ID];
 	                USB_Comm_Parameters.USB_rx_parameters.device_rx_state = USB_RX_PROCESS_TYPE_CONTROL_STATE;
