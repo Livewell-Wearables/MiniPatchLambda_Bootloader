@@ -121,10 +121,12 @@ void Bootloader_Init(BootloaderCtx_t *ctx)
     							  								BOOTLOADER_VERSION_MINOR,
     							  								BOOTLOADER_VERSION_BUILD};
 
-	if(AT24C32_ReadData(&at24c32, 
+	bt_epprom_status = AT24C32_ReadData(&at24c32,
 						AT24C32_BOOTLOADER_VERSION_ADDRESS, 
 						bootloader_version_data,
-						AT24C32_BOOTLOADER_VERSION_SIZE) != HAL_OK)
+						AT24C32_BOOTLOADER_VERSION_SIZE);
+
+	if(bt_epprom_status != HAL_OK)
 	{
 		for (uint8_t i = 0; i < 2; i++)
 		{
